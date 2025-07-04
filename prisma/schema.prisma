@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  customer      String
+  productId     String   @map("product_id")
+  style         String
+  size          String
+  frame         String
+  glass         String
+  grid          String?
+  po            String   @map("p_o")
+  batchNo       String   @map("batch_no")
+  barcode       String?  // 扫码枪扫描的条码
+  status        String   @default("scheduled") // 状态: scheduled, 开料, 焊接, 清角, 组装, 入库, 出库
+  scannedAt     DateTime? // 扫描时间
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("products")
+}
