@@ -4,19 +4,22 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, Eye, Trash2, Package, Calendar, X } from 'lucide-react'
 
 export default function ProductListByStatus({ products, onDelete }) {
-  const [expandedStatuses, setExpandedStatuses] = useState({})
+  // 默认展开一些重要状态
+  const [expandedStatuses, setExpandedStatuses] = useState({
+    'scheduled': true,   // 已排产
+    '已切割': true,      // 已切割
+    '已清角': true,      // 已清角
+    '已入库': true,      // 已入库
+  })
   const [selectedProduct, setSelectedProduct] = useState(null)
 
   const statusConfig = {
     'scheduled': { name: '已排产', color: 'bg-purple-100 text-purple-800', icon: '📋' },
-    'pending': { name: '待处理', color: 'bg-gray-100 text-gray-800', icon: '⏳' },
-    '开料': { name: '开料', color: 'bg-orange-100 text-orange-800', icon: '🔧' },
-    '焊接': { name: '焊接', color: 'bg-red-100 text-red-800', icon: '🔥' },
-    '清角': { name: '清角', color: 'bg-yellow-100 text-yellow-800', icon: '✨' },
-    '组装': { name: '组装', color: 'bg-blue-100 text-blue-800', icon: '🔩' },
-    '入库': { name: '入库', color: 'bg-green-100 text-green-800', icon: '📦' },
-    '出库': { name: '出库', color: 'bg-purple-100 text-purple-800', icon: '🚚' },
-    'scanned': { name: '已扫描', color: 'bg-cyan-100 text-cyan-800', icon: '📱' }
+    '已切割': { name: '已切割', color: 'bg-orange-100 text-orange-800', icon: '✂️' },
+    '已清角': { name: '已清角', color: 'bg-yellow-100 text-yellow-800', icon: '✨' },
+    '已入库': { name: '已入库', color: 'bg-green-100 text-green-800', icon: '📦' },
+    '部分出库': { name: '部分出库', color: 'bg-blue-100 text-blue-800', icon: '📤' },
+    '已出库': { name: '已出库', color: 'bg-purple-100 text-purple-800', icon: '🚚' },
   }
 
   // 按状态分组产品
@@ -28,6 +31,10 @@ export default function ProductListByStatus({ products, onDelete }) {
     acc[status].push(product)
     return acc
   }, {})
+
+  // 按生产流程顺序排列状态
+  const statusOrder = ['scheduled', '已切割', '已清角', '已入库', '部分出库', '已出库']
+  const sortedStatuses = statusOrder.filter(status => groupedProducts[status])
 
   const toggleStatusExpansion = (status) => {
     setExpandedStatuses(prev => ({
@@ -55,7 +62,7 @@ export default function ProductListByStatus({ products, onDelete }) {
     }
   }
 
-  if (Object.keys(groupedProducts).length === 0) {
+  if (sortedStatuses.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -66,7 +73,30 @@ export default function ProductListByStatus({ products, onDelete }) {
 
   return (
     <div className="space-y-4">
-      {Object.entries(groupedProducts).map(([status, statusProducts]) => {
+      {/* 总计信息栏 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium text-blue-900">生产进度总览</h3>
+          <div className="text-sm text-blue-700">
+            总计 {products.length} 个产品，分布在 {sortedStatuses.length} 个状态中
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {sortedStatuses.map(status => {
+            const count = groupedProducts[status]?.length || 0
+            const config = statusConfig[status] || { name: status, color: 'bg-gray-100 text-gray-800', icon: '❓' }
+            return (
+              <div key={status} className="text-center">
+                <div className="text-lg font-bold text-blue-900">{count}</div>
+                <div className="text-xs text-blue-700">{config.name}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {sortedStatuses.map((status) => {
+        const statusProducts = groupedProducts[status]
         const config = statusConfig[status] || { name: status, color: 'bg-gray-100 text-gray-800', icon: '❓' }
         const isExpanded = expandedStatuses[status]
 

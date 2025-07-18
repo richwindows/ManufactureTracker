@@ -194,17 +194,20 @@ export default function ProductForm({ onClose, onSubmit }) {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                条码
-              </label>
-              <input
-                type="text"
-                name="barcode"
-                value={formData.barcode}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="可以通过扫码枪输入"
-              />
+              <div>
+                <label htmlFor="barcode" className="block text-sm font-medium text-gray-700 mb-2">
+                  产品条码（可选）
+                </label>
+                <input
+                  type="text"
+                  id="barcode"
+                  name="barcode"
+                  value={formData.barcode}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="输入产品条码"
+                />
+              </div>
             </div>
           </div>
 

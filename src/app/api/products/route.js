@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 // GET - 获取产品（支持日期筛选）
 export async function GET(request) {
@@ -7,7 +7,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
     
-    let whereClause = {}
+    let query = supabase.from('products').select('*')
     
     if (date) {
       // 如果指定了日期，筛选指定日期的数据
@@ -17,23 +17,20 @@ export async function GET(request) {
       const endDate = new Date(date)
       endDate.setHours(23, 59, 59, 999)
       
-      whereClause = {
-        createdAt: {
-          gte: startDate,
-          lte: endDate
-        }
-      }
+      query = query
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
     }
     // 如果没有指定日期，显示所有数据
     
-    const products = await db.product.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const { data: products, error } = await query.order('created_at', { ascending: false })
     
-    return NextResponse.json(products)
+    if (error) {
+      console.error('获取产品失败:', error)
+      throw error
+    }
+    
+    return NextResponse.json(products || [])
   } catch (error) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ error: '获取产品失败' }, { status: 500 })
@@ -45,20 +42,27 @@ export async function POST(request) {
   try {
     const data = await request.json()
     
-    const product = await db.product.create({
-      data: {
+    const { data: product, error } = await supabase
+      .from('products')
+      .insert({
         customer: data.customer,
-        productId: data.productId,
+        product_id: data.productId,
         style: data.style,
         size: data.size,
         frame: data.frame,
         glass: data.glass,
         grid: data.grid || '',
-        po: data.po,
-        batchNo: data.batchNo,
+        p_o: data.po,
+        batch_no: data.batchNo,
         barcode: data.barcode || null
-      }
-    })
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('创建产品失败:', error)
+      throw error
+    }
     
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
@@ -77,9 +81,15 @@ export async function DELETE(request) {
       return NextResponse.json({ error: '缺少产品ID' }, { status: 400 })
     }
     
-    await db.product.delete({
-      where: { id: parseInt(id) }
-    })
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', parseInt(id))
+    
+    if (error) {
+      console.error('删除产品失败:', error)
+      throw error
+    }
     
     return NextResponse.json({ message: '产品删除成功' })
   } catch (error) {

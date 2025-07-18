@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -22,11 +22,20 @@ model Product {
   grid          String?
   po            String   @map("p_o")
   batchNo       String   @map("batch_no")
-  barcode       String?  // 扫码枪扫描的条码
-  status        String   @default("scheduled") // 状态: scheduled, 开料, 焊接, 清角, 组装, 入库, 出库
-  scannedAt     DateTime? // 扫描时间
+  barcode       String?  // 产品条码（可选）
+  status        String   @default("scheduled") // 状态: scheduled(已排产), 已切割, 已清角, 已入库, 部分出库, 已出库
+  scannedAt     DateTime? // 扫描时间（可选）
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
   @@map("products")
+}
+
+model Barcode {
+  id        Int      @id @default(autoincrement())
+  barcode   String   @unique // 条码值，4位数字格式
+  scannedAt DateTime @default(now()) // 扫描时间
+  createdAt DateTime @default(now())
+  
+  @@map("barcodes")
 }

@@ -33,12 +33,11 @@ export default function ProductList({ products, onDelete }) {
   const getStatusBadge = (status, scannedAt) => {
     const statusConfig = {
       'scheduled': { name: '已排产', color: 'bg-purple-100 text-purple-800', icon: Package },
-      '开料': { name: '开料', color: 'bg-orange-100 text-orange-800', icon: Package },
-      '焊接': { name: '焊接', color: 'bg-red-100 text-red-800', icon: Package },
-      '清角': { name: '清角', color: 'bg-yellow-100 text-yellow-800', icon: Package },
-      '组装': { name: '组装', color: 'bg-blue-100 text-blue-800', icon: Package },
-      '入库': { name: '入库', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      '出库': { name: '出库', color: 'bg-purple-100 text-purple-800', icon: CheckCircle }
+      '已切割': { name: '已切割', color: 'bg-orange-100 text-orange-800', icon: Package },
+      '已清角': { name: '已清角', color: 'bg-yellow-100 text-yellow-800', icon: Package },
+      '已入库': { name: '已入库', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+      '部分出库': { name: '部分出库', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+      '已出库': { name: '已出库', color: 'bg-purple-100 text-purple-800', icon: CheckCircle }
     }
 
     const config = statusConfig[status] || { name: status || '未知', color: 'bg-gray-100 text-gray-800', icon: Package }
