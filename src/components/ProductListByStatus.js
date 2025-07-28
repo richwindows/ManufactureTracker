@@ -4,13 +4,8 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, Eye, Trash2, Package, Calendar, X } from 'lucide-react'
 
 export default function ProductListByStatus({ products, onDelete }) {
-  // 默认展开一些重要状态
-  const [expandedStatuses, setExpandedStatuses] = useState({
-    'scheduled': true,   // 已排产
-    '已切割': true,      // 已切割
-    '已清角': true,      // 已清角
-    '已入库': true,      // 已入库
-  })
+  // 默认收起所有状态
+  const [expandedStatuses, setExpandedStatuses] = useState({})
   const [selectedProduct, setSelectedProduct] = useState(null)
 
   const statusConfig = {
@@ -290,4 +285,4 @@ export default function ProductListByStatus({ products, onDelete }) {
       )}
     </div>
   )
-} 
+}

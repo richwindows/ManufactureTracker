@@ -62,6 +62,7 @@ export async function POST(request) {
             grid: row.grid ? row.grid.trim() : '',
             p_o: row.po ? row.po.trim() : '',
             batch_no: row.batchNo.trim(),
+            barcode: row.barcode ? row.barcode.trim() : '',
             status: 'scheduled' // 默认状态为已排产
           })
         
@@ -87,4 +88,4 @@ export async function POST(request) {
     console.error('Bulk import error:', error)
     return NextResponse.json({ error: '批量导入失败' }, { status: 500 })
   }
-} 
+}

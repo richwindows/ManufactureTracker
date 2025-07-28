@@ -44,7 +44,8 @@ export default function BulkImport({ onImportComplete, onClose }) {
             glass: columns[5] || '',
             grid: columns[6] || '',
             po: columns[7] || '',
-            batchNo: columns[8] || columns[7] // 如果没有第9列，使用第8列作为batchNo
+            batchNo: columns[8] || columns[7], // 如果没有第9列，使用第8列作为batchNo
+            barcode: columns[9] || '' // 第10列为条码
           }
 
           // 简单验证
@@ -97,13 +98,20 @@ export default function BulkImport({ onImportComplete, onClose }) {
     }
   }
 
-  const sampleData = `Customer	ID	Style	Size	Frame	Glass	Grid	P.O	Batch NO.
-Luis107012	21	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+	TLC	06032025-02-05	BATCH-001
-Luis107012	22	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+	TLC	06032025-02-05	BATCH-002`
+  const sampleData = `Customer	ID	Style	Size	Frame	Glass	Grid	P.O	Batch NO.	Barcode
+Luis107012	21	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+		TLC	06032025-02-05	BATCH-001	BC001
+Luis107012	22	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+		TLC	06032025-02-05	BATCH-002	BC002`
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-gradient-to-br from-slate-900/95 via-blue-900/95 to-indigo-900/95 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/20">
         <div className="flex justify-between items-center p-6 border-b">
           <div className="flex items-center">
             <Upload className="h-6 w-6 text-blue-600 mr-3" />
@@ -131,7 +139,7 @@ Luis107012	22	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+	TLC	06032025-02-05	BATCH-002`
                   <li>确认无误后点击"开始导入"</li>
                 </ol>
                 <p className="text-xs text-blue-600 mt-2">
-                  数据格式：客户名 | 产品ID | 样式 | 尺寸 | 框架 | 玻璃 | 网格 | P.O | 批次号
+                  数据格式：客户名 | 产品ID | 样式 | 尺寸 | 框架 | 玻璃 | 网格 | P.O | 批次号 | 条码
                 </p>
               </div>
             </div>
@@ -195,6 +203,7 @@ Luis107012	22	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+	TLC	06032025-02-05	BATCH-002`
                       <th className="px-2 py-1">网格</th>
                       <th className="px-2 py-1">P.O</th>
                       <th className="px-2 py-1">批次号</th>
+                      <th className="px-2 py-1">条码</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -209,6 +218,7 @@ Luis107012	22	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+	TLC	06032025-02-05	BATCH-002`
                         <td className="px-2 py-1">{row.grid}</td>
                         <td className="px-2 py-1">{row.po}</td>
                         <td className="px-2 py-1">{row.batchNo}</td>
+                        <td className="px-2 py-1">{row.barcode || '无'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -281,4 +291,4 @@ Luis107012	22	XO	35 1/2 x 23 1/2	Nailon	OBS/cl+	TLC	06032025-02-05	BATCH-002`
       </div>
     </div>
   )
-} 
+}

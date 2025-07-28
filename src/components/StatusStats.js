@@ -103,53 +103,50 @@ export default function StatusStats() {
 
   const statCards = [
     {
-      title: '总产品',
-      value: stats.total || 0,
+      title: '已排产',
+      value: (stats.byStatus?.scheduled || 0),
       icon: Package,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
-      title: '已排产',
-      value: (stats.byStatus?.scheduled || 0),
+      title: '已切割',
+      value: (stats.byStatus?.['已切割'] || 0),
       icon: Package,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },
     {
-      title: '生产中',
-      value: (stats.byStatus?.['已切割'] || 0) + 
-             (stats.byStatus?.['已清角'] || 0),
+      title: '已清角',
+      value: (stats.byStatus?.['已清角'] || 0),
       icon: Clock,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50'
     },
     {
-      title: '已完成',
-      value: (stats.byStatus?.['已入库'] || 0) + 
-             (stats.byStatus?.['部分出库'] || 0) +
-             (stats.byStatus?.['已出库'] || 0),
+      title: '已入库',
+      value: (stats.byStatus?.['已入库'] || 0),
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-50'
+    },
+    {
+      title: '部分出库',
+      value: (stats.byStatus?.['部分出库'] || 0),
+      icon: Package,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50'
+    },
+    {
+      title: '已出库',
+      value: (stats.byStatus?.['已出库'] || 0),
+      icon: CheckCircle,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50'
     }
   ]
 
-  // 安全地计算进度
-  const totalProduction = (stats.byStatus?.['已切割'] || 0) + 
-                          (stats.byStatus?.['已清角'] || 0) + 
-                          (stats.byStatus?.['已入库'] || 0) + 
-                          (stats.byStatus?.['部分出库'] || 0) +
-                          (stats.byStatus?.['已出库'] || 0)
-  
-  const totalCompleted = (stats.byStatus?.['已入库'] || 0) + 
-                         (stats.byStatus?.['部分出库'] || 0) +
-                         (stats.byStatus?.['已出库'] || 0)
-  
-  const progress = stats.total > 0 ? {
-    production: Math.round((totalProduction / stats.total) * 100),
-    completed: Math.round((totalCompleted / stats.total) * 100)
-  } : { production: 0, completed: 0 }
+
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -177,7 +174,7 @@ export default function StatusStats() {
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((card, index) => (
           <div key={index} className={`${card.bgColor} rounded-lg p-4`}>
             <div className="flex items-center">
@@ -190,51 +187,6 @@ export default function StatusStats() {
           </div>
         ))}
       </div>
-
-      {/* 进度条 */}
-      <div className="space-y-3">
-        <div>
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>生产进度</span>
-            <span>{progress.production}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress.production}%` }}
-            ></div>
-          </div>
-        </div>
-        
-        <div>
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>完成进度</span>
-            <span>{progress.completed}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress.completed}%` }}
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 详细状态信息 */}
-      {stats.total > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="text-sm text-gray-600">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <div>已排产: {stats.byStatus?.scheduled || 0}</div>
-              <div>已切割: {stats.byStatus?.['已切割'] || 0}</div>
-              <div>已清角: {stats.byStatus?.['已清角'] || 0}</div>
-              <div>已入库: {stats.byStatus?.['已入库'] || 0}</div>
-              <div>部分出库: {stats.byStatus?.['部分出库'] || 0}</div>
-              <div>已出库: {stats.byStatus?.['已出库'] || 0}</div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
-} 
+}

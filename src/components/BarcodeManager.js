@@ -18,7 +18,7 @@ export default function BarcodeManager({ onBarcodeAdded }) {
     setSelectedDate(today);
     
     // 加载最近的条码记录
-    fetchRecentBarcodes();
+    // fetchRecentBarcodes();
     
     // 聚焦到输入框
     if (inputRef.current) {
