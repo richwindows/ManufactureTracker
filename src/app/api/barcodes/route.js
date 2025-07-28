@@ -156,13 +156,12 @@ export async function GET(request) {
 // POST - 添加新条码
 export async function POST(request) {
   try {
-    const { barcode } = await request.json();
+    const { barcode, device_id } = await request.json();
 
-    // 验证条码格式（4位数字）
-    const pattern = /^\d{4}$/;
-    if (!pattern.test(barcode)) {
+    // 验证条码格式（支持多种格式）
+    if (!barcode || barcode.length < 1 || barcode.length > 50) {
       return NextResponse.json({ 
-        error: 'Invalid barcode format. Must be 4 digits.' 
+        error: 'Invalid barcode format. Must be 1-50 characters.' 
       }, { status: 400 });
     }
 
@@ -189,6 +188,7 @@ export async function POST(request) {
       .from('barcodes')
       .insert({
         barcode,
+        device_id: device_id || null,
         scanned_at: new Date().toISOString()
       })
       .select()

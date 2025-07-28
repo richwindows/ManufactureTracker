@@ -6,6 +6,7 @@ import ProductList from '@/components/ProductList'
 import ProductListByStatus from '@/components/ProductListByStatus'
 import BulkImport from '@/components/BulkImport'
 import StatusStats from '@/components/StatusStats'
+import ProductStatusSync from '@/components/ProductStatusSync'
 
 export default function Home() {
   const [products, setProducts] = useState([])
@@ -122,6 +123,11 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 状态统计 */}
         <StatusStats key={products.length} />
+        
+        {/* 产品状态自动同步 */}
+        <div className="mb-8">
+          <ProductStatusSync />
+        </div>
 
         {/* 搜索和筛选框 */}
         <div className="bg-white/12 backdrop-blur-md rounded-2xl shadow-xl mb-8 p-6 border border-white/20">
