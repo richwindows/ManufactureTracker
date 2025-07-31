@@ -1,21 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Package, Calendar, Upload, Monitor } from 'lucide-react'
+import { Search, Package, Calendar, Upload, Monitor, Users, LogOut, Settings } from 'lucide-react'
 import ProductList from '@/components/ProductList'
 import ProductListByStatus from '@/components/ProductListByStatus'
 import BulkImport from '@/components/BulkImport'
 import StatusStats from '@/components/StatusStats'
 import ProductStatusSync from '@/components/ProductStatusSync'
+import UserManagement from '@/components/UserManagement'
+import ProtectedRoute, { AdminOnly, OperatorAndAbove, PermissionGuard } from '@/components/ProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
+import { PERMISSIONS } from '@/lib/auth'
 
-export default function Home() {
+function Home() {
+  const { user, logout, hasPermission, isAdmin } = useAuth()
   const [products, setProducts] = useState([])
-
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [dateStats, setDateStats] = useState([])
   const [showBulkImport, setShowBulkImport] = useState(false)
+  const [showUserManagement, setShowUserManagement] = useState(false)
   const [viewMode, setViewMode] = useState('status') // 'list' 或 'status' - 默认按状态分组
 
   useEffect(() => {
@@ -94,26 +99,60 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* 用户信息 */}
+              {user && (
+                <div className="flex items-center space-x-3 text-white/90">
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{user.full_name}</div>
+                    <div className="text-xs text-white/70">
+                      {user.role === 'admin' && '管理员'}
+                      {user.role === 'operator' && '操作员'}
+                      {user.role === 'viewer' && '查看者'}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* 导航按钮 */}
-              <a
-                href="/barcode-collector"
-                className="group bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                <Package className="h-4 w-4 text-purple-400 group-hover:text-purple-300" />
-                <span className="font-medium">Counting Windows</span>
-              </a>
+              <PermissionGuard requiredPermissions={[PERMISSIONS.BARCODES_VIEW]}>
+                <a
+                  href="/barcode-collector"
+                  className="group bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <Package className="h-4 w-4 text-purple-400 group-hover:text-purple-300" />
+                  <span className="font-medium">Counting Windows</span>
+                </a>
+              </PermissionGuard>
               
               {/* 功能按钮组 */}
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setShowBulkImport(true)}
-                  className="group bg-gradient-to-r from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
-                >
-                  <Upload className="h-4 w-4 text-emerald-400 group-hover:text-emerald-300" />
-                  <span className="font-medium">批量导入</span>
-                </button>
+                <PermissionGuard requiredPermissions={[PERMISSIONS.PRODUCTS_BULK_IMPORT]}>
+                  <button
+                    onClick={() => setShowBulkImport(true)}
+                    className="group bg-gradient-to-r from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    <Upload className="h-4 w-4 text-emerald-400 group-hover:text-emerald-300" />
+                    <span className="font-medium">批量导入</span>
+                  </button>
+                </PermissionGuard>
                 
-
+                <AdminOnly>
+                  <button
+                    onClick={() => setShowUserManagement(true)}
+                    className="group bg-gradient-to-r from-orange-500/20 to-red-500/20 hover:from-orange-500/30 hover:to-red-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    <Users className="h-4 w-4 text-orange-400 group-hover:text-orange-300" />
+                    <span className="font-medium">用户管理</span>
+                  </button>
+                </AdminOnly>
+                
+                <button
+                  onClick={logout}
+                  className="group bg-gradient-to-r from-gray-500/20 to-slate-500/20 hover:from-gray-500/30 hover:to-slate-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <LogOut className="h-4 w-4 text-gray-400 group-hover:text-gray-300" />
+                  <span className="font-medium">退出</span>
+                </button>
               </div>
             </div>
           </div>
@@ -121,13 +160,37 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 状态统计 */}
-        <StatusStats key={products.length} />
-        
-        {/* 产品状态自动同步 */}
-        <div className="mb-8">
-          <ProductStatusSync />
-        </div>
+        {/* 用户管理界面 */}
+        {showUserManagement ? (
+          <AdminOnly>
+            <div className="bg-white rounded-2xl shadow-xl border border-white/20">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-gray-900">用户管理</h2>
+                  <button
+                    onClick={() => setShowUserManagement(false)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    返回主页
+                  </button>
+                </div>
+              </div>
+              <UserManagement />
+            </div>
+          </AdminOnly>
+        ) : (
+          <>
+            {/* 状态统计 */}
+            <PermissionGuard requiredPermissions={[PERMISSIONS.REPORTS_VIEW]}>
+              <StatusStats key={products.length} />
+            </PermissionGuard>
+            
+            {/* 产品状态自动同步 */}
+            <OperatorAndAbove>
+              <div className="mb-8">
+                <ProductStatusSync />
+              </div>
+            </OperatorAndAbove>
 
         {/* 搜索和筛选框 */}
         <div className="bg-white/12 backdrop-blur-md rounded-2xl shadow-xl mb-8 p-6 border border-white/20">
@@ -220,26 +283,30 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 产品列表 */}
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">加载中...</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow">
-            {viewMode === 'status' ? (
-              <ProductListByStatus 
-                products={filteredProducts} 
-                onDelete={handleProductDelete} 
-              />
-            ) : (
-              <ProductList 
-                products={filteredProducts} 
-                onDelete={handleProductDelete} 
-              />
-            )}
-          </div>
+            {/* 产品列表 */}
+            <PermissionGuard requiredPermissions={[PERMISSIONS.PRODUCTS_VIEW]}>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">加载中...</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow">
+                  {viewMode === 'status' ? (
+                    <ProductListByStatus 
+                      products={filteredProducts} 
+                      onDelete={handleProductDelete} 
+                    />
+                  ) : (
+                    <ProductList 
+                      products={filteredProducts} 
+                      onDelete={handleProductDelete} 
+                    />
+                  )}
+                </div>
+              )}
+            </PermissionGuard>
+          </>
         )}
       </main>
 
@@ -247,14 +314,27 @@ export default function Home() {
 
       {/* 批量导入弹窗 */}
       {showBulkImport && (
-        <BulkImport
-          onImportComplete={() => {
-            setShowBulkImport(false)
-            fetchProducts()
-          }}
-          onClose={() => setShowBulkImport(false)}
-        />
+        <PermissionGuard requiredPermissions={[PERMISSIONS.PRODUCTS_BULK_IMPORT]}>
+          <BulkImport
+            onImportComplete={() => {
+              setShowBulkImport(false)
+              fetchProducts()
+            }}
+            onClose={() => setShowBulkImport(false)}
+          />
+        </PermissionGuard>
       )}
     </div>
   )
 }
+
+// 使用权限保护包装整个页面
+function ProtectedHome() {
+  return (
+    <ProtectedRoute>
+      <Home />
+    </ProtectedRoute>
+  )
+}
+
+export default ProtectedHome

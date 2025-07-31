@@ -1,14 +1,16 @@
-import './globals.css'
+'use client'
 
-export const metadata = {
-  title: '产品管理系统',
-  description: 'Next.js扫码枪产品管理系统',
-}
+import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   )
 }
