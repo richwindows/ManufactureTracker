@@ -79,9 +79,9 @@ function Home() {
 
   // 搜索过滤
   const filteredProducts = products.filter(product =>
-    product.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.style.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.productId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.style?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 

@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Eye, Trash2, Package, Calendar, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, Trash2, Package, Calendar, X, Edit, Check, XCircle } from 'lucide-react'
 
-export default function ProductListByStatus({ products, onDelete }) {
+export default function ProductListByStatus({ products, onDelete, onStatusUpdate }) {
   // 默认收起所有状态
   const [expandedStatuses, setExpandedStatuses] = useState({})
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [editingStatus, setEditingStatus] = useState(null)
+  const [newStatus, setNewStatus] = useState('')
 
   const statusConfig = {
     'scheduled': { name: '已排产', color: 'bg-purple-100 text-purple-800', icon: '📋' },
@@ -16,6 +18,15 @@ export default function ProductListByStatus({ products, onDelete }) {
     '部分出库': { name: '部分出库', color: 'bg-blue-100 text-blue-800', icon: '📤' },
     '已出库': { name: '已出库', color: 'bg-purple-100 text-purple-800', icon: '🚚' },
   }
+
+  const statusOptions = [
+    { value: 'scheduled', label: '已排产' },
+    { value: '已切割', label: '已切割' },
+    { value: '已清角', label: '已清角' },
+    { value: '已入库', label: '已入库' },
+    { value: '部分出库', label: '部分出库' },
+    { value: '已出库', label: '已出库' }
+  ]
 
   // 按状态分组产品
   const groupedProducts = products.reduce((acc, product) => {
@@ -55,6 +66,40 @@ export default function ProductListByStatus({ products, onDelete }) {
         console.error('删除产品失败:', error)
       }
     }
+  }
+
+  const handleStatusEdit = (productId, currentStatus) => {
+    setEditingStatus(productId)
+    setNewStatus(currentStatus)
+  }
+
+  const handleStatusSave = async (productId) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (response.ok) {
+        setEditingStatus(null)
+        setNewStatus('')
+        if (onStatusUpdate) {
+          onStatusUpdate()
+        }
+      } else {
+        console.error('更新状态失败')
+      }
+    } catch (error) {
+      console.error('更新状态时出错:', error)
+    }
+  }
+
+  const handleStatusCancel = () => {
+    setEditingStatus(null)
+    setNewStatus('')
   }
 
   if (sortedStatuses.length === 0) {
@@ -136,6 +181,9 @@ export default function ProductListByStatus({ products, onDelete }) {
                           规格
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          状态
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           条码
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -163,6 +211,49 @@ export default function ProductListByStatus({ products, onDelete }) {
                             <div>{product.size}</div>
                             <div>{product.frame} | {product.glass}</div>
                             {product.grid && <div>Grid: {product.grid}</div>}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {editingStatus === product.id ? (
+                              <div className="flex items-center space-x-2">
+                                <select
+                                  value={newStatus}
+                                  onChange={(e) => setNewStatus(e.target.value)}
+                                  className="text-sm border border-gray-300 rounded px-2 py-1"
+                                >
+                                  {statusOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => handleStatusSave(product.id)}
+                                  className="text-green-600 hover:text-green-900"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={handleStatusCancel}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  statusConfig[product.status]?.color || 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {statusConfig[product.status]?.name || product.status}
+                                </span>
+                                <button
+                                  onClick={() => handleStatusEdit(product.id, product.status)}
+                                  className="text-blue-600 hover:text-blue-900"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">

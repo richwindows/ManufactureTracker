@@ -1,10 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Eye, Calendar, Package, X, CheckCircle, Clock, Scan } from 'lucide-react'
+import { Trash2, Eye, Calendar, Package, X, CheckCircle, Clock, Scan, Edit3, Save, XCircle } from 'lucide-react'
 
-export default function ProductList({ products, onDelete }) {
+export default function ProductList({ products, onDelete, onStatusUpdate }) {
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [editingStatus, setEditingStatus] = useState(null)
+  const [newStatus, setNewStatus] = useState('')
+
+  const statusOptions = [
+    'scheduled',
+    '已切割',
+    '已清角', 
+    '已入库',
+    '部分出库',
+    '已出库'
+  ]
 
   const handleDelete = async (id) => {
     if (window.confirm('确定要删除这个产品吗？')) {
@@ -24,6 +35,44 @@ export default function ProductList({ products, onDelete }) {
         alert('删除失败，请重试')
       }
     }
+  }
+
+  const handleStatusEdit = (product) => {
+    setEditingStatus(product.id)
+    setNewStatus(product.status || 'scheduled')
+  }
+
+  const handleStatusSave = async (productId) => {
+    try {
+      const response = await fetch(`/api/products?id=${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (response.ok) {
+        const updatedProduct = await response.json()
+        setEditingStatus(null)
+        setNewStatus('')
+        // 调用父组件的回调函数来更新产品列表
+        if (onStatusUpdate) {
+          onStatusUpdate(updatedProduct)
+        }
+        alert('状态更新成功！')
+      } else {
+        alert('状态更新失败，请重试')
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('状态更新失败，请重试')
+    }
+  }
+
+  const handleStatusCancel = () => {
+    setEditingStatus(null)
+    setNewStatus('')
   }
 
   const formatDate = (dateString) => {
@@ -49,6 +98,18 @@ export default function ProductList({ products, onDelete }) {
         {config.name}
       </span>
     )
+  }
+
+  const getStatusName = (status) => {
+    const statusConfig = {
+      'scheduled': '已排产',
+      '已切割': '已切割',
+      '已清角': '已清角',
+      '已入库': '已入库',
+      '部分出库': '部分出库',
+      '已出库': '已出库'
+    }
+    return statusConfig[status] || status || '未知'
   }
 
   if (products.length === 0) {
@@ -125,7 +186,46 @@ export default function ProductList({ products, onDelete }) {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {getStatusBadge(product.status, product.scannedAt)}
+                  {editingStatus === product.id ? (
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={newStatus}
+                        onChange={(e) => setNewStatus(e.target.value)}
+                        className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {statusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {getStatusName(status)}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleStatusSave(product.id)}
+                        className="text-green-600 hover:text-green-900"
+                        title="保存"
+                      >
+                        <Save className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={handleStatusCancel}
+                        className="text-red-600 hover:text-red-900"
+                        title="取消"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(product.status, product.scannedAt)}
+                      <button
+                        onClick={() => handleStatusEdit(product)}
+                        className="text-blue-600 hover:text-blue-900 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="编辑状态"
+                      >
+                        <Edit3 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div className="flex items-center">
@@ -138,12 +238,21 @@ export default function ProductList({ products, onDelete }) {
                     <button
                       onClick={() => setSelectedProduct(product)}
                       className="text-blue-600 hover:text-blue-900"
+                      title="查看详情"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
                     <button
+                      onClick={() => handleStatusEdit(product)}
+                      className="text-green-600 hover:text-green-900"
+                      title="编辑状态"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => handleDelete(product.id)}
                       className="text-red-600 hover:text-red-900"
+                      title="删除"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -237,4 +346,4 @@ export default function ProductList({ products, onDelete }) {
       )}
     </>
   )
-} 
+}

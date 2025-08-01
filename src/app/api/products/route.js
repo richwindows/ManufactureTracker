@@ -71,6 +71,43 @@ export async function POST(request) {
   }
 }
 
+// PUT - 更新产品状态
+export async function PUT(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const data = await request.json()
+    
+    if (!id) {
+      return NextResponse.json({ error: '缺少产品ID' }, { status: 400 })
+    }
+
+    if (!data.status) {
+      return NextResponse.json({ error: '缺少状态信息' }, { status: 400 })
+    }
+    
+    const { data: product, error } = await supabase
+      .from('products')
+      .update({
+        status: data.status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', parseInt(id))
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('更新产品状态失败:', error)
+      throw error
+    }
+    
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('Error updating product status:', error)
+    return NextResponse.json({ error: '更新产品状态失败' }, { status: 500 })
+  }
+}
+
 // DELETE - 删除产品
 export async function DELETE(request) {
   try {
@@ -96,4 +133,4 @@ export async function DELETE(request) {
     console.error('Error deleting product:', error)
     return NextResponse.json({ error: '删除产品失败' }, { status: 500 })
   }
-} 
+}

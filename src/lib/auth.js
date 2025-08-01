@@ -4,32 +4,38 @@ import { supabase } from '@/lib/supabase'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 // 验证用户认证和权限
+// 修改 verifyAuth 函数，添加更详细的错误日志
 export async function verifyAuth(request, requiredPermissions = []) {
   try {
     // 从cookie或Authorization header获取token
     let token = null
     
-    // 首先尝试从cookie获取
-    const cookies = request.headers.get('cookie')
-    if (cookies) {
-      const tokenMatch = cookies.match(/auth-token=([^;]+)/)
-      if (tokenMatch) {
-        token = tokenMatch[1]
-      }
+    // 首先尝试从Authorization header获取
+    const authHeader = request.headers.get('authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
     }
     
-    // 如果cookie中没有，尝试从Authorization header获取
+    // 如果没有Authorization header，尝试从cookie获取
     if (!token) {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7)
+      const cookies = request.headers.get('cookie')
+      if (cookies) {
+        const tokenMatch = cookies.match(/auth-token=([^;]+)/)
+        if (tokenMatch) {
+          token = tokenMatch[1]
+        }
       }
     }
 
+    console.log('=== 认证调试信息 ===')
+    console.log('Token存在:', !!token)
+    console.log('Token长度:', token ? token.length : 0)
+    
     if (!token) {
+      console.log('错误: 未找到认证令牌')
       return {
         success: false,
-        error: '未提供认证令牌'
+        error: '未找到认证令牌'
       }
     }
 
@@ -37,7 +43,9 @@ export async function verifyAuth(request, requiredPermissions = []) {
     let decoded
     try {
       decoded = jwt.verify(token, JWT_SECRET)
+      console.log('JWT验证成功, 用户ID:', decoded.userId)
     } catch (jwtError) {
+      console.log('JWT验证失败:', jwtError.message)
       return {
         success: false,
         error: '无效的认证令牌'
@@ -52,7 +60,10 @@ export async function verifyAuth(request, requiredPermissions = []) {
       .eq('is_active', true)
       .single()
 
+    console.log('会话查询结果:', { session: !!session, error: sessionError })
+
     if (sessionError || !session) {
+      console.log('会话验证失败:', sessionError)
       return {
         success: false,
         error: '会话已过期或无效'
@@ -62,7 +73,10 @@ export async function verifyAuth(request, requiredPermissions = []) {
     // 检查会话是否过期
     const now = new Date()
     const expiresAt = new Date(session.expires_at)
+    console.log('会话过期检查:', { now: now.toISOString(), expiresAt: expiresAt.toISOString() })
+    
     if (now > expiresAt) {
+      console.log('会话已过期')
       // 删除过期会话
       await supabase
         .from('user_sessions')
@@ -83,7 +97,10 @@ export async function verifyAuth(request, requiredPermissions = []) {
       .eq('is_active', true)
       .single()
 
+    console.log('用户查询结果:', { user: !!user, error: userError })
+
     if (userError || !user) {
+      console.log('用户验证失败:', userError)
       return {
         success: false,
         error: '用户不存在或已被禁用'
@@ -93,6 +110,8 @@ export async function verifyAuth(request, requiredPermissions = []) {
     // 获取用户权限
     const { data: permissions, error: permError } = await supabase
       .rpc('get_user_permissions', { user_id: user.id })
+
+    console.log('权限查询结果:', { permissions: permissions?.length || 0, error: permError })
 
     if (permError) {
       console.error('获取用户权限失败:', permError)
@@ -109,6 +128,8 @@ export async function verifyAuth(request, requiredPermissions = []) {
         userPermissions.includes(perm)
       )
 
+      console.log('权限检查:', { required: requiredPermissions, user: userPermissions, hasAll: hasAllPermissions })
+
       if (!hasAllPermissions) {
         return {
           success: false,
@@ -117,6 +138,7 @@ export async function verifyAuth(request, requiredPermissions = []) {
       }
     }
 
+    console.log('认证验证成功')
     return {
       success: true,
       user: {

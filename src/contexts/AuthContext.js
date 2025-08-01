@@ -27,8 +27,28 @@ export const AuthProvider = ({ children }) => {
       })
       if (response.ok) {
         const data = await response.json()
+        console.log('认证数据:', data) // 调试日志
         setUser(data.user)
-        setPermissions(data.user.permissions || [])
+        
+        // 修复权限设置逻辑
+        let userPermissions = []
+        if (data.user.permissions) {
+          if (Array.isArray(data.user.permissions)) {
+            // 如果是字符串数组，直接使用
+            if (typeof data.user.permissions[0] === 'string') {
+              userPermissions = data.user.permissions
+            } 
+            // 如果是对象数组，提取权限名称
+            else if (typeof data.user.permissions[0] === 'object') {
+              userPermissions = data.user.permissions.map(p => 
+                p.permission_name || p.name || p
+              )
+            }
+          }
+        }
+        
+        console.log('处理后的权限:', userPermissions) // 调试日志
+        setPermissions(userPermissions)
       } else {
         setUser(null)
         setPermissions([])
@@ -58,7 +78,22 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         setUser(data.user)
-        setPermissions(data.user.permissions || [])
+        
+        // 修复权限设置逻辑
+        let userPermissions = []
+        if (data.user.permissions) {
+          if (Array.isArray(data.user.permissions)) {
+            if (typeof data.user.permissions[0] === 'string') {
+              userPermissions = data.user.permissions
+            } else if (typeof data.user.permissions[0] === 'object') {
+              userPermissions = data.user.permissions.map(p => 
+                p.permission_name || p.name || p
+              )
+            }
+          }
+        }
+        
+        setPermissions(userPermissions)
         return { success: true }
       } else {
         return { success: false, error: data.error }
@@ -84,18 +119,35 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // 检查权限
+  // 检查权限 - 增强版本
   const hasPermission = (permission) => {
+    console.log(`检查权限 ${permission}:`, {
+      permissions,
+      hasIt: permissions.includes(permission),
+      userRole: user?.role
+    })
+    
+    // 如果是管理员，拥有所有权限
+    if (user?.role === 'admin') {
+      return true
+    }
+    
     return permissions.includes(permission)
   }
 
   // 检查任一权限
   const hasAnyPermission = (permissionList) => {
+    if (user?.role === 'admin') {
+      return true
+    }
     return permissionList.some(permission => permissions.includes(permission))
   }
 
   // 检查所有权限
   const hasAllPermissions = (permissionList) => {
+    if (user?.role === 'admin') {
+      return true
+    }
     return permissionList.every(permission => permissions.includes(permission))
   }
 
