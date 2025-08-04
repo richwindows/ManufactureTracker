@@ -2,18 +2,57 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Search, Package, Truck, LogOut, CheckCircle } from 'lucide-react'
+import { PERMISSIONS } from '@/lib/permissions'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { PERMISSIONS } from '@/lib/auth'
+import { 
+  Search, 
+  Package, 
+  Truck, 
+  LogOut, 
+  CheckCircle,
+  BarChart3,
+  TrendingUp,
+  Calendar,
+  Users
+} from 'lucide-react'
 
 function ShippingPage() {
-  const { user, logout, hasPermission } = useAuth()
+  const { user, logout, hasPermission, permissions } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [productStats, setProductStats] = useState(null)
+  const [statsLoading, setStatsLoading] = useState(true)
 
-  // 搜索产品
+  // 调试信息
+  useEffect(() => {
+    console.log('Shipping页面调试信息:', {
+      user,
+      permissions,
+      hasShippingPermission: hasPermission(PERMISSIONS.PRODUCTS_SHIPPING),
+      requiredPermission: PERMISSIONS.PRODUCTS_SHIPPING
+    })
+  }, [user, permissions, hasPermission])
+
+  // 获取生产进度统计
+  useEffect(() => {
+    fetchProductStats()
+  }, [])
+
+  const fetchProductStats = async () => {
+    try {
+      setStatsLoading(true)
+      const response = await fetch('/api/products/status-stats')
+      const data = await response.json()
+      setProductStats(data)
+    } catch (error) {
+      console.error('获取生产统计失败:', error)
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
       setMessage('请输入搜索关键词')
@@ -25,29 +64,29 @@ function ShippingPage() {
     
     try {
       const response = await fetch(`/api/products?search=${encodeURIComponent(searchTerm)}`)
+      const data = await response.json()
+      
       if (response.ok) {
-        const data = await response.json()
         setSearchResults(data.products || [])
-        if (data.products.length === 0) {
-          setMessage('未找到匹配的产品')
-        }
+        setMessage(data.products?.length > 0 ? `找到 ${data.products.length} 个产品` : '未找到匹配的产品')
       } else {
-        setMessage('搜索失败，请重试')
+        setMessage(data.error || '搜索失败')
+        setSearchResults([])
       }
     } catch (error) {
-      console.error('搜索错误:', error)
+      console.error('搜索出错:', error)
       setMessage('搜索出错，请重试')
+      setSearchResults([])
     } finally {
       setLoading(false)
     }
   }
 
-  // 处理出货操作
-  const handleShipping = async (productId, shippingType) => {
+  const handleShipping = async (productId, type) => {
     try {
-      const newStatus = shippingType === 'full' ? '已出库' : '部分出库'
+      const newStatus = type === 'partial' ? '部分出库' : '已出库'
       
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/products?id=${productId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -55,6 +94,8 @@ function ShippingPage() {
         body: JSON.stringify({ status: newStatus }),
       })
 
+      const data = await response.json()
+      
       if (response.ok) {
         setMessage(`产品状态已更新为：${newStatus}`)
         // 更新搜索结果中的产品状态
@@ -65,26 +106,27 @@ function ShippingPage() {
               : product
           )
         )
+        // 刷新统计数据
+        fetchProductStats()
       } else {
-        setMessage('更新失败，请重试')
+        setMessage(data.error || '更新失败')
       }
     } catch (error) {
-      console.error('更新状态错误:', error)
-      setMessage('操作失败，请重试')
+      console.error('更新产品状态出错:', error)
+      setMessage('更新失败，请重试')
     }
   }
 
-  // 获取状态显示样式
   const getStatusBadge = (status) => {
     const statusConfig = {
       'scheduled': { name: '已排产', color: 'bg-purple-100 text-purple-800', icon: '📋' },
       '已切割': { name: '已切割', color: 'bg-orange-100 text-orange-800', icon: '✂️' },
-      '已清角': { name: '已清角', color: 'bg-yellow-100 text-yellow-800', icon: '✨' },
-      '已入库': { name: '已入库', color: 'bg-green-100 text-green-800', icon: '📦' },
-      '部分出库': { name: '部分出库', color: 'bg-blue-100 text-blue-800', icon: '📤' },
-      '已出库': { name: '已出库', color: 'bg-purple-100 text-purple-800', icon: '🚚' },
+      '已清角': { name: '已清角', color: 'bg-yellow-100 text-yellow-800', icon: '🔧' },
+      '已入库': { name: '已入库', color: 'bg-blue-100 text-blue-800', icon: '📦' },
+      '部分出库': { name: '部分出库', color: 'bg-indigo-100 text-indigo-800', icon: '📤' },
+      '已出库': { name: '已出库', color: 'bg-green-100 text-green-800', icon: '✅' }
     }
-
+    
     const config = statusConfig[status] || { name: status, color: 'bg-gray-100 text-gray-800', icon: '❓' }
     
     return (
@@ -95,13 +137,55 @@ function ShippingPage() {
     )
   }
 
-  // 检查权限
-  if (!hasPermission(PERMISSIONS.PRODUCTS_SHIPPING)) {
+  // 更宽松的权限检查 - 允许多种角色访问
+  const canAccessShipping = () => {
+    // 管理员总是可以访问
+    if (user?.role === 'admin') {
+      return true
+    }
+    
+    // 检查是否有出货权限
+    if (hasPermission(PERMISSIONS.PRODUCTS_SHIPPING)) {
+      return true
+    }
+    
+    // 检查是否是 shipping_receiving 角色
+    if (user?.role === 'shipping_receiving') {
+      return true
+    }
+    
+    // 检查是否有产品查看和更新权限（基本的出货需求）
+    if (hasPermission(PERMISSIONS.PRODUCTS_VIEW) && hasPermission(PERMISSIONS.PRODUCTS_UPDATE)) {
+      return true
+    }
+    
+    return false
+  }
+
+  // 如果用户未登录，显示加载状态
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">正在验证用户权限...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 权限检查
+  if (!canAccessShipping()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p className="text-gray-600">您没有权限访问出货管理系统</p>
+          <div className="mt-4 text-sm text-gray-500">
+            <p>当前用户: {user?.username}</p>
+            <p>用户角色: {user?.role}</p>
+            <p>权限列表: {permissions.join(', ') || '无'}</p>
+          </div>
         </div>
       </div>
     )
@@ -142,6 +226,97 @@ function ShippingPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 生产进度总览 */}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl mb-8 p-6 border border-white/20">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <BarChart3 className="h-6 w-6 text-blue-600 mr-3" />
+              <h2 className="text-xl font-bold text-gray-900">生产进度总览</h2>
+            </div>
+            <button
+              onClick={fetchProductStats}
+              disabled={statsLoading}
+              className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            >
+              {statsLoading ? '刷新中...' : '刷新数据'}
+            </button>
+          </div>
+
+          {statsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">加载中...</span>
+            </div>
+          ) : productStats ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              {/* 总计 */}
+              <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-600 text-sm font-medium">总产品数</p>
+                    <p className="text-2xl font-bold text-blue-900">{productStats.total}</p>
+                  </div>
+                  <Package className="h-8 w-8 text-blue-500" />
+                </div>
+              </div>
+
+              {/* 各状态统计 */}
+              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-200">
+                <div className="text-center">
+                  <div className="text-lg mb-1">📋</div>
+                  <div className="text-2xl font-bold text-purple-900">{productStats.byStatus.scheduled}</div>
+                  <div className="text-xs text-purple-700">已排产</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl p-4 border border-orange-200">
+                <div className="text-center">
+                  <div className="text-lg mb-1">✂️</div>
+                  <div className="text-2xl font-bold text-orange-900">{productStats.byStatus['已切割']}</div>
+                  <div className="text-xs text-orange-700">已切割</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl p-4 border border-yellow-200">
+                <div className="text-center">
+                  <div className="text-lg mb-1">🔧</div>
+                  <div className="text-2xl font-bold text-yellow-900">{productStats.byStatus['已清角']}</div>
+                  <div className="text-xs text-yellow-700">已清角</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-xl p-4 border border-blue-200">
+                <div className="text-center">
+                  <div className="text-lg mb-1">📦</div>
+                  <div className="text-2xl font-bold text-blue-900">{productStats.byStatus['已入库']}</div>
+                  <div className="text-xs text-blue-700">已入库</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl p-4 border border-indigo-200">
+                <div className="text-center">
+                  <div className="text-lg mb-1">📤</div>
+                  <div className="text-2xl font-bold text-indigo-900">{productStats.byStatus['部分出库']}</div>
+                  <div className="text-xs text-indigo-700">部分出库</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-200">
+                <div className="text-center">
+                  <div className="text-lg mb-1">✅</div>
+                  <div className="text-2xl font-bold text-green-900">{productStats.byStatus['已出库']}</div>
+                  <div className="text-xs text-green-700">已出库</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>无法加载生产进度数据</p>
+            </div>
+          )}
+        </div>
+
         {/* 搜索区域 */}
         <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl mb-8 p-6 border border-white/20">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -278,10 +453,10 @@ function ShippingPage() {
   )
 }
 
-// 使用权限保护包装页面
+// 使用权限保护包装页面 - 移除严格的权限检查
 function ProtectedShippingPage() {
   return (
-    <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_SHIPPING]}>
+    <ProtectedRoute>
       <ShippingPage />
     </ProtectedRoute>
   )
