@@ -140,12 +140,12 @@ export default function BarcodeManager({ onBarcodeAdded }) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800">条码数据收集器</h2>
+    <div className="bg-white p-3 rounded-lg shadow-lg">
+      <h2 className="text-xl font-bold mb-3 text-gray-800">条码数据收集器</h2>
 
       {/* 消息提示 */}
       {message.text && (
-        <div className={`mb-4 p-3 rounded-lg ${
+        <div className={`mb-2 p-2 rounded text-sm ${
           message.type === 'success' ? 'bg-green-100 text-green-800' :
           message.type === 'error' ? 'bg-red-100 text-red-800' :
           'bg-blue-100 text-blue-800'
@@ -155,23 +155,21 @@ export default function BarcodeManager({ onBarcodeAdded }) {
       )}
 
       {/* 条码输入表单 */}
-      <form onSubmit={addBarcode} className="mb-6">
-        <div className="flex gap-4">
+      <form onSubmit={addBarcode} className="mb-3">
+        <div className="flex gap-2">
           <input
             ref={inputRef}
             type="text"
             value={barcode}
             onChange={(e) => setBarcode(e.target.value)}
-            placeholder="输入4位数字条码..."
-            className="flex-1 px-4 py-3 text-2xl border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            maxLength={4}
-            pattern="\d{4}"
+            placeholder="输入条码 (如: 1@Rich-07212025-05)..."
+            className="flex-1 px-3 py-2 text-lg border border-gray-300 rounded focus:outline-none focus:border-blue-500"
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 bg-blue-600 text-white text-xl font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? '添加中...' : '添加条码'}
           </button>
@@ -179,43 +177,43 @@ export default function BarcodeManager({ onBarcodeAdded }) {
       </form>
 
       {/* 最近扫描记录 */}
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold mb-3 text-gray-700">最近扫描记录</h3>
-        <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold mb-2 text-gray-700">最近扫描记录</h3>
+        <div className="bg-gray-50 rounded p-2 max-h-32 overflow-y-auto">
           {recentBarcodes.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {recentBarcodes.map((item, index) => (
-                <li key={item.id} className="text-lg">
-                  <span className="font-mono bg-yellow-200 px-2 py-1 rounded">
+                <li key={item.id} className="text-sm">
+                  <span className="font-mono bg-yellow-200 px-1 py-0.5 rounded text-xs">
                     {item.barcode}
                   </span>
-                  <span className="ml-3 text-gray-600">
+                  <span className="ml-2 text-gray-600 text-xs">
                     {formatDateTime(item.scannedAt)}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-gray-500 text-lg">暂无扫描记录</p>
+            <p className="text-gray-500 text-sm">暂无扫描记录</p>
           )}
         </div>
       </div>
 
       {/* 日期查询 */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-3">
         {/* 单日查询 */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="text-lg font-semibold mb-3 text-gray-700">单日查询</h4>
-          <div className="flex gap-3">
+        <div className="bg-gray-50 p-2 rounded">
+          <h4 className="text-sm font-semibold mb-2 text-gray-700">单日查询</h4>
+          <div className="flex gap-2">
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-3 py-2 text-lg border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
             />
             <button
               onClick={queryDateCount}
-              className="px-4 py-2 bg-green-600 text-white text-lg font-semibold rounded hover:bg-green-700 transition-colors"
+              className="px-3 py-1 bg-green-600 text-white text-sm font-semibold rounded hover:bg-green-700 transition-colors"
             >
               查询
             </button>
@@ -223,30 +221,30 @@ export default function BarcodeManager({ onBarcodeAdded }) {
         </div>
 
         {/* 日期范围查询 */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="text-lg font-semibold mb-3 text-gray-700">日期范围查询</h4>
-          <div className="space-y-3">
-            <div className="flex gap-3 items-center">
-              <label className="text-sm text-gray-600 w-12">从:</label>
+        <div className="bg-gray-50 p-2 rounded">
+          <h4 className="text-sm font-semibold mb-2 text-gray-700">日期范围查询</h4>
+          <div className="space-y-2">
+            <div className="flex gap-2 items-center">
+              <label className="text-xs text-gray-600 w-6">从:</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="flex-1 px-3 py-2 text-lg border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
               />
             </div>
-            <div className="flex gap-3 items-center">
-              <label className="text-sm text-gray-600 w-12">到:</label>
+            <div className="flex gap-2 items-center">
+              <label className="text-xs text-gray-600 w-6">到:</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="flex-1 px-3 py-2 text-lg border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
               />
             </div>
             <button
               onClick={queryRangeCount}
-              className="w-full px-4 py-2 bg-purple-600 text-white text-lg font-semibold rounded hover:bg-purple-700 transition-colors"
+              className="w-full px-3 py-1 bg-purple-600 text-white text-sm font-semibold rounded hover:bg-purple-700 transition-colors"
             >
               查询范围
             </button>
@@ -255,4 +253,4 @@ export default function BarcodeManager({ onBarcodeAdded }) {
       </div>
     </div>
   );
-} 
+}

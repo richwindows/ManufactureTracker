@@ -15,10 +15,10 @@ export async function GET(request) {
       case 'today-count':
         const today = new Date().toISOString().split('T')[0];
         const { count: todayCount, error: todayError } = await supabase
-          .from('barcodes')
+          .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('scanned_at', `${today}T00:00:00Z`)
-          .lt('scanned_at', `${today}T23:59:59Z`);
+          .gte('scan_time', `${today}T00:00:00Z`)
+          .lt('scan_time', `${today}T23:59:59Z`);
         
         if (todayError) {
           console.error('Error fetching today count:', todayError);
@@ -26,48 +26,61 @@ export async function GET(request) {
         }
         return NextResponse.json({ count: todayCount || 0 });
 
+      case 'today-list':
+        const todayForList = new Date().toISOString().split('T')[0];
+        const { data: todayBarcodes, error: todayListError } = await supabase
+          .from('barcode_scans')
+          .select('id, barcode_data, scan_time, device_port, status')
+          .gte('scan_time', `${todayForList}T00:00:00Z`)
+          .lt('scan_time', `${todayForList}T23:59:59Z`)
+          .order('scan_time', { ascending: false });
+        
+        if (todayListError) {
+          console.error('Error fetching today list:', todayListError);
+          return NextResponse.json({ error: 'Failed to fetch today list' }, { status: 500 });
+        }
+        
+        // 转换字段名以保持兼容性
+        const formattedTodayBarcodes = todayBarcodes?.map(barcode => ({
+          id: barcode.id,
+          barcode: barcode.barcode_data,
+          scannedAt: barcode.scan_time,
+          device_port: barcode.device_port,
+          status: barcode.status
+        })) || [];
+        
+        return NextResponse.json(formattedTodayBarcodes);
+
       case 'highest-record':
         try {
-          const { data: records, error: recordError } = await supabase
-            .rpc('get_highest_barcode_record');
+          // 手动查询所有记录并按日期分组
+          const { data: allBarcodes, error: fallbackError } = await supabase
+            .from('barcode_scans')
+            .select('scan_time');
           
-          if (recordError) {
-            console.error('Error in highest-record RPC:', recordError);
-            // Fallback: get all records and group manually
-            const { data: allBarcodes, error: fallbackError } = await supabase
-              .from('barcodes')
-              .select('scanned_at');
-            
-            if (fallbackError) {
-              console.error('Fallback query failed:', fallbackError);
-              return NextResponse.json({ count: 0, date: '' });
-            }
-            
-            // Group by date and count
-            const dateGroups = {};
-            allBarcodes.forEach(barcode => {
-              const date = new Date(barcode.scanned_at).toISOString().split('T')[0];
-              dateGroups[date] = (dateGroups[date] || 0) + 1;
-            });
-            
-            // Find highest count
-            let maxCount = 0;
-            let maxDate = '';
-            Object.entries(dateGroups).forEach(([date, count]) => {
-              if (count > maxCount) {
-                maxCount = count;
-                maxDate = date;
-              }
-            });
-            
-            return NextResponse.json({ count: maxCount, date: maxDate });
+          if (fallbackError) {
+            console.error('Fallback query failed:', fallbackError);
+            return NextResponse.json({ count: 0, date: '' });
           }
           
-          const record = records?.[0] || { count: 0, date: null };
-          return NextResponse.json({ 
-            count: Number(record.count) || 0, 
-            date: record.date || '' 
+          // Group by date and count
+          const dateGroups = {};
+          allBarcodes.forEach(barcode => {
+            const date = new Date(barcode.scan_time).toISOString().split('T')[0];
+            dateGroups[date] = (dateGroups[date] || 0) + 1;
           });
+          
+          // Find highest count
+          let maxCount = 0;
+          let maxDate = '';
+          Object.entries(dateGroups).forEach(([date, count]) => {
+            if (count > maxCount) {
+              maxCount = count;
+              maxDate = date;
+            }
+          });
+          
+          return NextResponse.json({ count: maxCount, date: maxDate });
         } catch (error) {
           console.error('Error in highest-record:', error);
           return NextResponse.json({ count: 0, date: '' });
@@ -78,10 +91,10 @@ export async function GET(request) {
           return NextResponse.json({ error: 'Date parameter required' }, { status: 400 });
         }
         const { count: dateCount, error: dateError } = await supabase
-          .from('barcodes')
+          .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('scanned_at', `${date}T00:00:00Z`)
-          .lt('scanned_at', `${date}T23:59:59Z`);
+          .gte('scan_time', `${date}T00:00:00Z`)
+          .lt('scan_time', `${date}T23:59:59Z`);
         
         if (dateError) {
           console.error('Error fetching date count:', dateError);
@@ -94,10 +107,10 @@ export async function GET(request) {
           return NextResponse.json({ error: 'Start and end date parameters required' }, { status: 400 });
         }
         const { count: rangeCount, error: rangeError } = await supabase
-          .from('barcodes')
+          .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('scanned_at', `${startDate}T00:00:00Z`)
-          .lt('scanned_at', `${endDate}T23:59:59Z`);
+          .gte('scan_time', `${startDate}T00:00:00Z`)
+          .lt('scan_time', `${endDate}T23:59:59Z`);
         
         if (rangeError) {
           console.error('Error fetching range count:', rangeError);
@@ -108,9 +121,9 @@ export async function GET(request) {
       case 'recent':
         const recentLimit = limit ? parseInt(limit) : 10;
         const { data: recentBarcodes, error: recentError } = await supabase
-          .from('barcodes')
-          .select('id, barcode, scanned_at')
-          .order('scanned_at', { ascending: false })
+          .from('barcode_scans')
+          .select('id, barcode_data, scan_time')
+          .order('scan_time', { ascending: false })
           .limit(recentLimit);
         
         if (recentError) {
@@ -118,10 +131,11 @@ export async function GET(request) {
           return NextResponse.json({ error: 'Failed to fetch recent barcodes' }, { status: 500 });
         }
         
-        // Convert scanned_at to scannedAt for consistency
+        // 转换字段名以保持兼容性
         const formattedBarcodes = recentBarcodes?.map(barcode => ({
-          ...barcode,
-          scannedAt: barcode.scanned_at
+          id: barcode.id,
+          barcode: barcode.barcode_data,
+          scannedAt: barcode.scan_time
         })) || [];
         
         return NextResponse.json(formattedBarcodes);
@@ -129,9 +143,9 @@ export async function GET(request) {
       default:
         const defaultLimit = limit ? parseInt(limit) : 50;
         const { data: allBarcodes, error: allError } = await supabase
-          .from('barcodes')
+          .from('barcode_scans')
           .select('*')
-          .order('scanned_at', { ascending: false })
+          .order('scan_time', { ascending: false })
           .limit(defaultLimit);
         
         if (allError) {
@@ -139,10 +153,13 @@ export async function GET(request) {
           return NextResponse.json({ error: 'Failed to fetch barcodes' }, { status: 500 });
         }
         
-        // Convert scanned_at to scannedAt for consistency
+        // 转换字段名以保持兼容性
         const formattedAllBarcodes = allBarcodes?.map(barcode => ({
-          ...barcode,
-          scannedAt: barcode.scanned_at
+          id: barcode.id,
+          barcode: barcode.barcode_data,
+          scannedAt: barcode.scan_time,
+          device_port: barcode.device_port,
+          status: barcode.status
         })) || [];
         
         return NextResponse.json(formattedAllBarcodes);
@@ -158,38 +175,21 @@ export async function POST(request) {
   try {
     const { barcode, device_id } = await request.json();
 
-    // 验证条码格式（支持多种格式）
-    if (!barcode || barcode.length < 1 || barcode.length > 50) {
+    // 验证条码格式
+    if (!barcode || barcode.length < 1 || barcode.length > 100) {
       return NextResponse.json({ 
-        error: 'Invalid barcode format. Must be 1-50 characters.' 
+        error: 'Invalid barcode format. Must be 1-100 characters.' 
       }, { status: 400 });
-    }
-
-    // 检查条码是否已存在
-    const { data: existingBarcode, error: checkError } = await supabase
-      .from('barcodes')
-      .select('id')
-      .eq('barcode', barcode)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-      console.error('Error checking existing barcode:', checkError);
-      return NextResponse.json({ error: 'Failed to check barcode' }, { status: 500 });
-    }
-
-    if (existingBarcode) {
-      return NextResponse.json({ 
-        error: 'Barcode already exists in database.' 
-      }, { status: 409 });
     }
 
     // 创建新条码记录
     const { data: newBarcode, error: createError } = await supabase
-      .from('barcodes')
+      .from('barcode_scans')
       .insert({
-        barcode,
-        device_id: device_id || null,
-        scanned_at: new Date().toISOString()
+        barcode_data: barcode,
+        device_port: device_id || null,
+        scan_time: new Date().toISOString(),
+        status: '已切割' // 默认状态
       })
       .select()
       .single();
@@ -199,10 +199,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to create barcode' }, { status: 500 });
     }
 
-    // Convert scanned_at to scannedAt for consistency
+    // 转换字段名以保持兼容性
     const formattedBarcode = {
-      ...newBarcode,
-      scannedAt: newBarcode.scanned_at
+      id: newBarcode.id,
+      barcode: newBarcode.barcode_data,
+      scannedAt: newBarcode.scan_time,
+      device_port: newBarcode.device_port,
+      status: newBarcode.status
     };
 
     return NextResponse.json(formattedBarcode, { status: 201 });

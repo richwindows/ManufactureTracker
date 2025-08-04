@@ -2,9 +2,16 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 // GET - 获取产品状态统计
-export async function GET() {
+export async function GET(request) {
   try {
     console.log('🔍 获取产品状态统计...')
+
+    // 获取查询参数
+    const { searchParams } = new URL(request.url)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
+
+    console.log('📅 时间范围参数:', { startDate, endDate })
 
     // 检查环境变量配置
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -35,10 +42,25 @@ export async function GET() {
       return NextResponse.json(fallbackStats, { status: 200 })
     }
 
-    // 获取所有产品的状态
-    const { data: products, error: productsError } = await supabase
+    // 构建查询
+    let query = supabase
       .from('products')
-      .select('status, scanned_at')
+      .select('status, scanned_at, created_at')
+
+    // 如果有时间范围参数，添加过滤条件
+    if (startDate && endDate) {
+      // 使用 created_at 字段进行时间过滤（产品创建时间）
+      const startDateTime = `${startDate}T00:00:00.000Z`
+      const endDateTime = `${endDate}T23:59:59.999Z`
+      
+      query = query
+        .gte('created_at', startDateTime)
+        .lte('created_at', endDateTime)
+      
+      console.log('🔍 应用时间过滤:', { startDateTime, endDateTime })
+    }
+
+    const { data: products, error: productsError } = await query
 
     if (productsError) {
       console.error('获取产品数据失败:', productsError)
@@ -72,15 +94,28 @@ export async function GET() {
     // 计算总数
     const total = productsArray.length
 
-    // 计算今日扫描统计
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const todayScanned = productsArray.filter(product => {
-      if (!product.scanned_at) return false
-      const scannedDate = new Date(product.scanned_at)
-      return scannedDate >= today
-    }).length
+    // 计算今日扫描统计（如果没有时间范围限制，则计算今天的；如果有时间范围，则计算范围内的）
+    let todayScanned = 0
+    if (startDate && endDate) {
+      // 如果有时间范围，计算范围内有扫描记录的产品
+      todayScanned = productsArray.filter(product => {
+        if (!product.scanned_at) return false
+        const scannedDate = new Date(product.scanned_at)
+        const rangeStart = new Date(`${startDate}T00:00:00.000Z`)
+        const rangeEnd = new Date(`${endDate}T23:59:59.999Z`)
+        return scannedDate >= rangeStart && scannedDate <= rangeEnd
+      }).length
+    } else {
+      // 如果没有时间范围，计算今天的扫描
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      todayScanned = productsArray.filter(product => {
+        if (!product.scanned_at) return false
+        const scannedDate = new Date(product.scanned_at)
+        return scannedDate >= today
+      }).length
+    }
 
     // 按状态分组统计
     const statusCounts = productsArray.reduce((acc, product) => {
@@ -100,7 +135,9 @@ export async function GET() {
         '已入库': statusCounts['已入库'] || 0,
         '部分出库': statusCounts['部分出库'] || 0,
         '已出库': statusCounts['已出库'] || 0
-      }
+      },
+      // 添加时间范围信息到响应中
+      dateRange: startDate && endDate ? { startDate, endDate } : null
     }
 
     // 添加任何其他状态
@@ -132,4 +169,4 @@ export async function GET() {
     
     return NextResponse.json(fallbackStats, { status: 200 })
   }
-} 
+}

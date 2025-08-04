@@ -51,17 +51,17 @@ export default function BarcodeCollectorPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* 布局：上方显示面板，下方输入管理 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 左侧：显示面板 */}
-          <div className="lg:col-span-2">
-            <div className="bg-white/12 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20">
-              <FullScreenDisplay key={refreshKey} />
+        {/* 布局：上下排列 */}
+        <div className="space-y-6">
+          {/* 上方：显示面板（缩小尺寸） */}
+          <div className="bg-white/12 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20">
+            <div className="h-80 lg:h-96">
+              <FullScreenDisplay key={refreshKey} isCompact={true} />
             </div>
           </div>
 
-          {/* 右侧：输入管理面板 */}
-          <div className="lg:col-span-1">
+          {/* 下方：输入管理面板 */}
+          <div className="bg-white/12 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20">
             <BarcodeManager onBarcodeAdded={handleBarcodeAdded} />
           </div>
         </div>

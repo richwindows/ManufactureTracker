@@ -1,27 +1,42 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// GET - 获取产品（支持日期筛选）
+// GET - 获取产品（支持日期范围筛选）
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date')
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
+    const date = searchParams.get('date') // 保持向后兼容
     
     let query = supabase.from('products').select('*')
     
     if (date) {
-      // 如果指定了日期，筛选指定日期的数据
-      const startDate = new Date(date)
-      startDate.setHours(0, 0, 0, 0)
+      // 如果指定了单个日期，筛选指定日期的数据（向后兼容）
+      const startDateTime = new Date(date)
+      startDateTime.setHours(0, 0, 0, 0)
       
-      const endDate = new Date(date)
-      endDate.setHours(23, 59, 59, 999)
+      const endDateTime = new Date(date)
+      endDateTime.setHours(23, 59, 59, 999)
       
       query = query
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
+        .gte('created_at', startDateTime.toISOString())
+        .lte('created_at', endDateTime.toISOString())
+    } else if (startDate || endDate) {
+      // 如果指定了日期范围
+      if (startDate) {
+        const startDateTime = new Date(startDate)
+        startDateTime.setHours(0, 0, 0, 0)
+        query = query.gte('created_at', startDateTime.toISOString())
+      }
+      
+      if (endDate) {
+        const endDateTime = new Date(endDate)
+        endDateTime.setHours(23, 59, 59, 999)
+        query = query.lte('created_at', endDateTime.toISOString())
+      }
     }
-    // 如果没有指定日期，显示所有数据
+    // 如果没有指定任何日期参数，显示所有数据
     
     const { data: products, error } = await query.order('created_at', { ascending: false })
     
