@@ -20,7 +20,7 @@ export async function GET(request) {
     // 检查权限：只有管理员可以查看所有用户
     if (user.role !== 'admin') {
       return NextResponse.json(
-        { error: '权限不足' },
+        { error: '权限不足，只有管理员可以访问用户管理' },
         { status: 403 }
       )
     }

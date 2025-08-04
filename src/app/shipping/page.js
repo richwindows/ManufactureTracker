@@ -124,7 +124,7 @@ function ShippingPage() {
             <div className="flex items-center space-x-4">
               {user && (
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">{user.full_name || user.username}</div>
+                  <div className="text-sm font-medium text-gray-900">{user.fullName || user.username}</div>
                   <div className="text-xs text-gray-600">出货管理员</div>
                 </div>
               )}
@@ -266,7 +266,7 @@ function ShippingPage() {
         )}
 
         {/* 空状态 */}
-        {!loading && searchResults.length === 0 && searchTerm && (
+        {!loading && searchResults.length === 0 && !searchTerm && (
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500 text-lg">请输入搜索关键词查找产品</p>

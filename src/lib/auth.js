@@ -1,10 +1,9 @@
 import jwt from 'jsonwebtoken'
 import { supabase } from '@/lib/supabase'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-for-barcode-system-2024'
 
 // 验证用户认证和权限
-// 修改 verifyAuth 函数，添加更详细的错误日志
 export async function verifyAuth(request, requiredPermissions = []) {
   try {
     // 从cookie或Authorization header获取token
@@ -27,12 +26,7 @@ export async function verifyAuth(request, requiredPermissions = []) {
       }
     }
 
-    console.log('=== 认证调试信息 ===')
-    console.log('Token存在:', !!token)
-    console.log('Token长度:', token ? token.length : 0)
-    
     if (!token) {
-      console.log('错误: 未找到认证令牌')
       return {
         success: false,
         error: '未找到认证令牌'
@@ -43,9 +37,7 @@ export async function verifyAuth(request, requiredPermissions = []) {
     let decoded
     try {
       decoded = jwt.verify(token, JWT_SECRET)
-      console.log('JWT验证成功, 用户ID:', decoded.userId)
     } catch (jwtError) {
-      console.log('JWT验证失败:', jwtError.message)
       return {
         success: false,
         error: '无效的认证令牌'
@@ -57,13 +49,9 @@ export async function verifyAuth(request, requiredPermissions = []) {
       .from('user_sessions')
       .select('*')
       .eq('session_token', token)
-      .eq('is_active', true)
       .single()
 
-    console.log('会话查询结果:', { session: !!session, error: sessionError })
-
     if (sessionError || !session) {
-      console.log('会话验证失败:', sessionError)
       return {
         success: false,
         error: '会话已过期或无效'
@@ -73,10 +61,8 @@ export async function verifyAuth(request, requiredPermissions = []) {
     // 检查会话是否过期
     const now = new Date()
     const expiresAt = new Date(session.expires_at)
-    console.log('会话过期检查:', { now: now.toISOString(), expiresAt: expiresAt.toISOString() })
     
     if (now > expiresAt) {
-      console.log('会话已过期')
       // 删除过期会话
       await supabase
         .from('user_sessions')
@@ -97,21 +83,16 @@ export async function verifyAuth(request, requiredPermissions = []) {
       .eq('is_active', true)
       .single()
 
-    console.log('用户查询结果:', { user: !!user, error: userError })
-
     if (userError || !user) {
-      console.log('用户验证失败:', userError)
       return {
         success: false,
         error: '用户不存在或已被禁用'
       }
     }
 
-    // 获取用户权限
+    // 获取用户权限 - 修复函数调用
     const { data: permissions, error: permError } = await supabase
-      .rpc('get_user_permissions', { user_id: user.id })
-
-    console.log('权限查询结果:', { permissions: permissions?.length || 0, error: permError })
+      .rpc('get_user_permissions', { user_role: user.role })
 
     if (permError) {
       console.error('获取用户权限失败:', permError)
@@ -123,12 +104,10 @@ export async function verifyAuth(request, requiredPermissions = []) {
 
     // 检查所需权限
     if (requiredPermissions.length > 0) {
-      const userPermissions = permissions.map(p => p.permission_name)
+      const userPermissions = permissions?.map(p => p.permission_name || p.name) || []
       const hasAllPermissions = requiredPermissions.every(perm => 
         userPermissions.includes(perm)
       )
-
-      console.log('权限检查:', { required: requiredPermissions, user: userPermissions, hasAll: hasAllPermissions })
 
       if (!hasAllPermissions) {
         return {
@@ -138,12 +117,11 @@ export async function verifyAuth(request, requiredPermissions = []) {
       }
     }
 
-    console.log('认证验证成功')
     return {
       success: true,
       user: {
         ...user,
-        permissions: permissions.map(p => p.permission_name)
+        permissions: permissions?.map(p => p.permission_name || p.name) || []
       },
       session
     }
@@ -186,10 +164,11 @@ export function verifyToken(token) {
   }
 }
 
-// 权限常量
+// 权限常量 - 添加 shipping 相关权限
 export const PERMISSIONS = {
   // 产品管理
   PRODUCTS_VIEW: 'products:view',
+  PRODUCTS_READ: 'products:read',
   PRODUCTS_CREATE: 'products:create',
   PRODUCTS_UPDATE: 'products:update',
   PRODUCTS_DELETE: 'products:delete',
@@ -213,9 +192,12 @@ export const PERMISSIONS = {
   // 统计报告
   REPORTS_VIEW: 'reports:view',
   REPORTS_EXPORT: 'reports:export',
+  STATS_READ: 'stats:read',
+  STATS_EXPORT: 'stats:export',
   
   // 用户管理
   USERS_VIEW: 'users:view',
+  USERS_READ: 'users:read',
   USERS_CREATE: 'users:create',
   USERS_UPDATE: 'users:update',
   USERS_DELETE: 'users:delete',
@@ -226,7 +208,7 @@ export const PERMISSIONS = {
   SYSTEM_BACKUP: 'system:backup'
 }
 
-// 角色权限映射
+// 角色权限映射 - 添加 shipping_receiving 角色
 export const ROLE_PERMISSIONS = {
   admin: [
     // 所有权限

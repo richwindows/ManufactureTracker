@@ -23,23 +23,20 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/verify', {
-        credentials: 'include' // 确保发送cookies
+        credentials: 'include'
       })
       if (response.ok) {
         const data = await response.json()
-        console.log('认证数据:', data) // 调试日志
+        console.log('认证数据:', data)
         setUser(data.user)
         
         // 修复权限设置逻辑
         let userPermissions = []
         if (data.user.permissions) {
           if (Array.isArray(data.user.permissions)) {
-            // 如果是字符串数组，直接使用
             if (typeof data.user.permissions[0] === 'string') {
               userPermissions = data.user.permissions
-            } 
-            // 如果是对象数组，提取权限名称
-            else if (typeof data.user.permissions[0] === 'object') {
+            } else if (typeof data.user.permissions[0] === 'object') {
               userPermissions = data.user.permissions.map(p => 
                 p.permission_name || p.name || p
               )
@@ -47,7 +44,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
         
-        console.log('处理后的权限:', userPermissions) // 调试日志
+        console.log('处理后的权限:', userPermissions)
         setPermissions(userPermissions)
       } else {
         setUser(null)
@@ -65,16 +62,19 @@ export const AuthProvider = ({ children }) => {
   // 登录
   const login = async (username, password) => {
     try {
+      console.log('尝试登录:', { username, password: '***' })
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include', // 确保接收cookies
+        credentials: 'include',
         body: JSON.stringify({ username, password })
       })
 
       const data = await response.json()
+      console.log('登录响应:', data)
 
       if (response.ok) {
         setUser(data.user)
@@ -93,12 +93,15 @@ export const AuthProvider = ({ children }) => {
           }
         }
         
+        console.log('设置权限:', userPermissions)
         setPermissions(userPermissions)
         return { success: true }
       } else {
+        console.error('登录失败:', data.error)
         return { success: false, error: data.error }
       }
     } catch (error) {
+      console.error('登录网络错误:', error)
       return { success: false, error: '网络错误' }
     }
   }
@@ -108,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include' // 确保发送cookies
+        credentials: 'include'
       })
     } catch (error) {
       console.error('登出请求失败:', error)
@@ -119,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // 检查权限 - 增强版本
+  // 检查权限
   const hasPermission = (permission) => {
     console.log(`检查权限 ${permission}:`, {
       permissions,
@@ -127,7 +130,6 @@ export const AuthProvider = ({ children }) => {
       userRole: user?.role
     })
     
-    // 如果是管理员，拥有所有权限
     if (user?.role === 'admin') {
       return true
     }
@@ -181,6 +183,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin: user?.role === 'admin',
     isOperator: user?.role === 'operator',
     isViewer: user?.role === 'viewer'
+    // 移除了 isShippingReceiving 属性
   }
 
   return (
