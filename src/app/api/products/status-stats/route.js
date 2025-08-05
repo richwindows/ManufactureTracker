@@ -33,7 +33,8 @@ export async function GET(request) {
           '已清角': 0,
           '已入库': 0,
           '部分出库': 0,
-          '已出库': 0
+          '已出库': 0,
+          '已扫描': 0 // 添加仅扫码数据的状态
         },
         error: 'Supabase 配置未完成。请参考 SUPABASE_SETUP_GUIDE.md 完成配置。',
         needsSetup: true
@@ -42,25 +43,24 @@ export async function GET(request) {
       return NextResponse.json(fallbackStats, { status: 200 })
     }
 
-    // 构建查询
-    let query = supabase
+    // 1. 获取产品数据
+    let productsQuery = supabase
       .from('products')
-      .select('status, scanned_at, created_at')
+      .select('status, scanned_at, created_at, barcode')
 
     // 如果有时间范围参数，添加过滤条件
     if (startDate && endDate) {
-      // 使用 created_at 字段进行时间过滤（产品创建时间）
       const startDateTime = `${startDate}T00:00:00.000Z`
       const endDateTime = `${endDate}T23:59:59.999Z`
       
-      query = query
+      productsQuery = productsQuery
         .gte('created_at', startDateTime)
         .lte('created_at', endDateTime)
       
       console.log('🔍 应用时间过滤:', { startDateTime, endDateTime })
     }
 
-    const { data: products, error: productsError } = await query
+    const { data: products, error: productsError } = await productsQuery
 
     if (productsError) {
       console.error('获取产品数据失败:', productsError)
@@ -76,7 +76,8 @@ export async function GET(request) {
             '已清角': 0,
             '已入库': 0,
             '部分出库': 0,
-            '已出库': 0
+            '已出库': 0,
+            '已扫描': 0
           },
           error: '数据库表未创建。请运行 `npx prisma db push` 创建数据库架构。',
           needsSchema: true
@@ -88,13 +89,49 @@ export async function GET(request) {
       throw productsError
     }
 
-    // 确保 products 是数组
+    // 2. 获取仅扫码数据
+    // 首先获取所有产品的条码
     const productsArray = Array.isArray(products) ? products : []
+    const productBarcodes = productsArray
+      .filter(p => p.barcode)
+      .map(p => p.barcode)
 
-    // 计算总数
-    const total = productsArray.length
+    // 获取所有扫码数据
+    let scansQuery = supabase
+      .from('barcode_scans')
+      .select('id, barcode_data, scan_time, status')
 
-    // 计算今日扫描统计（如果没有时间范围限制，则计算今天的；如果有时间范围，则计算范围内的）
+    // 如果有时间范围参数，也对扫码数据应用过滤
+    if (startDate && endDate) {
+      const startDateTime = `${startDate}T00:00:00.000Z`
+      const endDateTime = `${endDate}T23:59:59.999Z`
+      
+      scansQuery = scansQuery
+        .gte('scan_time', startDateTime)
+        .lte('scan_time', endDateTime)
+    }
+
+    const { data: allScans, error: scansError } = await scansQuery
+
+    if (scansError) {
+      console.error('获取扫码数据失败:', scansError)
+    }
+
+    // 过滤出没有对应产品数据的扫码记录
+    const scannedOnlyBarcodes = (allScans || []).filter(scan => 
+      !productBarcodes.includes(scan.barcode_data)
+    )
+
+    console.log('📊 数据统计:', {
+      products: productsArray.length,
+      scannedOnly: scannedOnlyBarcodes.length,
+      totalBarcodes: productBarcodes.length
+    })
+
+    // 3. 计算总数（产品数据 + 仅扫码数据）
+    const total = productsArray.length + scannedOnlyBarcodes.length
+
+    // 4. 计算今日扫描统计
     let todayScanned = 0
     if (startDate && endDate) {
       // 如果有时间范围，计算范围内有扫描记录的产品
@@ -104,27 +141,41 @@ export async function GET(request) {
         const rangeStart = new Date(`${startDate}T00:00:00.000Z`)
         const rangeEnd = new Date(`${endDate}T23:59:59.999Z`)
         return scannedDate >= rangeStart && scannedDate <= rangeEnd
-      }).length
+      }).length + scannedOnlyBarcodes.length // 仅扫码数据在时间范围内已经被过滤了
     } else {
       // 如果没有时间范围，计算今天的扫描
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       
-      todayScanned = productsArray.filter(product => {
+      const todayProducts = productsArray.filter(product => {
         if (!product.scanned_at) return false
         const scannedDate = new Date(product.scanned_at)
         return scannedDate >= today
       }).length
+
+      const todayScannedOnly = scannedOnlyBarcodes.filter(scan => {
+        const scannedDate = new Date(scan.scan_time)
+        return scannedDate >= today
+      }).length
+
+      todayScanned = todayProducts + todayScannedOnly
     }
 
-    // 按状态分组统计
+    // 5. 按状态分组统计
+    // 统计产品数据的状态
     const statusCounts = productsArray.reduce((acc, product) => {
       const status = product.status || 'scheduled'
       acc[status] = (acc[status] || 0) + 1
       return acc
     }, {})
 
-    // 格式化统计数据 - 只包含新状态
+    // 统计仅扫码数据的状态
+    scannedOnlyBarcodes.forEach(scan => {
+      const status = scan.status || '已扫描'
+      statusCounts[status] = (statusCounts[status] || 0) + 1
+    })
+
+    // 6. 格式化统计数据
     const formattedStats = {
       total,
       todayScanned,
@@ -134,10 +185,16 @@ export async function GET(request) {
         '已清角': statusCounts['已清角'] || 0,
         '已入库': statusCounts['已入库'] || 0,
         '部分出库': statusCounts['部分出库'] || 0,
-        '已出库': statusCounts['已出库'] || 0
+        '已出库': statusCounts['已出库'] || 0,
+        '已扫描': statusCounts['已扫描'] || 0 // 仅扫码数据的状态
       },
       // 添加时间范围信息到响应中
-      dateRange: startDate && endDate ? { startDate, endDate } : null
+      dateRange: startDate && endDate ? { startDate, endDate } : null,
+      // 添加详细统计信息
+      details: {
+        productsCount: productsArray.length,
+        scannedOnlyCount: scannedOnlyBarcodes.length
+      }
     }
 
     // 添加任何其他状态
@@ -163,7 +220,8 @@ export async function GET(request) {
         '已清角': 0,
         '已入库': 0,
         '部分出库': 0,
-        '已出库': 0
+        '已出库': 0,
+        '已扫描': 0
       }
     }
     

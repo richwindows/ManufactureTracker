@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { Trash2, Eye, Calendar, Package, X, CheckCircle, Clock, Scan, Edit3, Save, XCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Trash2, Eye, Calendar, Package, X, CheckCircle, Clock, Scan, Edit3, Save, XCircle, AlertTriangle } from 'lucide-react'
 
 export default function ProductList({ products, onDelete, onStatusUpdate }) {
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [editingStatus, setEditingStatus] = useState(null)
   const [newStatus, setNewStatus] = useState('')
+  const [scannedOnlyBarcodes, setScannedOnlyBarcodes] = useState([])
+  const [showScannedOnly, setShowScannedOnly] = useState(true)
 
   const statusOptions = [
     'scheduled',
@@ -16,6 +18,30 @@ export default function ProductList({ products, onDelete, onStatusUpdate }) {
     '部分出库',
     '已出库'
   ]
+
+  // 获取只有扫码数据但没有产品数据的条码
+  useEffect(() => {
+    fetchScannedOnlyBarcodes()
+  }, [])
+
+  const fetchScannedOnlyBarcodes = async () => {
+    try {
+      console.log('Fetching scanned-only barcodes...')
+      const response = await fetch('/api/barcodes/scanned-only')
+      console.log('Response status:', response.status)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Scanned-only barcodes data:', data)
+        setScannedOnlyBarcodes(data)
+      } else {
+        const errorText = await response.text()
+        console.error('API error:', errorText)
+      }
+    } catch (error) {
+      console.error('Error fetching scanned-only barcodes:', error)
+    }
+  }
 
   const handleDelete = async (id) => {
     if (window.confirm('确定要删除这个产品吗？')) {
@@ -56,7 +82,6 @@ export default function ProductList({ products, onDelete, onStatusUpdate }) {
         const updatedProduct = await response.json()
         setEditingStatus(null)
         setNewStatus('')
-        // 调用父组件的回调函数来更新产品列表
         if (onStatusUpdate) {
           onStatusUpdate(updatedProduct)
         }
@@ -112,7 +137,7 @@ export default function ProductList({ products, onDelete, onStatusUpdate }) {
     return statusConfig[status] || status || '未知'
   }
 
-  if (products.length === 0) {
+  if (products.length === 0 && scannedOnlyBarcodes.length === 0) {
     return (
       <div className="p-8 text-center">
         <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -123,10 +148,28 @@ export default function ProductList({ products, onDelete, onStatusUpdate }) {
 
   return (
     <>
+      {/* 切换显示选项 */}
+      <div className="mb-4 flex items-center space-x-4">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={showScannedOnly}
+            onChange={(e) => setShowScannedOnly(e.target.checked)}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700">
+            显示仅有扫码数据的条码 ({scannedOnlyBarcodes.length} 条)
+          </span>
+        </label>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                类型
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 客户
               </th>
@@ -145,23 +188,30 @@ export default function ProductList({ products, onDelete, onStatusUpdate }) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 玻璃
               </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  条码
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  状态
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  创建时间
-                </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                条码
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                状态
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                创建时间
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
+            {/* 显示产品数据 */}
             {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50">
+              <tr key={`product-${product.id}`} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <Package className="h-3 w-3 mr-1" />
+                    产品数据
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {product.customer}
                 </td>
@@ -256,6 +306,63 @@ export default function ProductList({ products, onDelete, onStatusUpdate }) {
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {/* 显示仅有扫码数据的条码 */}
+            {showScannedOnly && scannedOnlyBarcodes.map((barcode) => (
+              <tr key={`barcode-${barcode.id}`} className="hover:bg-yellow-50 bg-yellow-25">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    仅扫码数据
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  -
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className="bg-yellow-100 px-2 py-1 rounded text-xs font-mono text-yellow-800">
+                    {barcode.barcode_data}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                    <Scan className="h-3 w-3 mr-1" />
+                    {barcode.status || '已扫描'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {formatDate(barcode.scan_time)}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex space-x-2">
+                    <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded">
+                      需要创建产品数据
+                    </span>
                   </div>
                 </td>
               </tr>
