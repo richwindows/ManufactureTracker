@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import UserList from './UserList'
 import UserForm from './UserForm'
-import UserFilters from './UserFilters'
 import PermissionsModal from './PermissionsModal'
 
 function UserManagement() {
@@ -32,22 +31,12 @@ function UserManagement() {
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState(null)
   
-  // 筛选和搜索状态
-  const [filters, setFilters] = useState({
-    search: '',
-    role: '',
-    department: '',
-    isActive: ''
-  })
-  
   // 分页状态
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0
   })
-
-
 
   // 检查权限
   useEffect(() => {
@@ -59,7 +48,7 @@ function UserManagement() {
     if (!authLoading && isAuthenticated && hasRole('admin')) {
       fetchUsers()
     }
-  }, [authLoading, isAuthenticated, user, pagination.page, filters])
+  }, [authLoading, isAuthenticated, user, pagination.page])
 
   // 获取用户列表
   const fetchUsers = async () => {
@@ -73,12 +62,6 @@ function UserManagement() {
         page: pagination.page.toString(),
         limit: pagination.limit.toString()
       })
-      
-      // 添加筛选参数
-      if (filters.search?.trim()) params.append('search', filters.search.trim())
-      if (filters.role) params.append('role', filters.role)
-      if (filters.department?.trim()) params.append('department', filters.department.trim())
-      if (filters.isActive !== '') params.append('isActive', filters.isActive)
       
       const response = await fetch(`/api/users-management?${params}`, {
         method: 'GET',
@@ -107,7 +90,6 @@ function UserManagement() {
     }
   }
 
-  // 创建或更新用户
   // 表单处理函数
   const handleFormChange = (field, value) => {
     setUserForm(prev => ({ ...prev, [field]: value }))
@@ -213,8 +195,10 @@ function UserManagement() {
   const handleToggleUserStatus = async (userId, currentStatus) => {
     try {
       const response = await fetch(`/api/users-management/${userId}/toggle-status`, {
-        method: 'PATCH',
-        credentials: 'include'
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: !currentStatus })
       })
       
       if (!response.ok) {
@@ -222,7 +206,7 @@ function UserManagement() {
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
       
-      setSuccess(`用户状态已${currentStatus ? '禁用' : '启用'}`)
+      setSuccess(`用户状态${!currentStatus ? '启用' : '禁用'}成功`)
       fetchUsers()
       
     } catch (err) {
@@ -233,22 +217,14 @@ function UserManagement() {
 
   // 重置密码
   const handleResetPassword = async (userId, username) => {
-    const newPassword = prompt(`为用户 "${username}" 设置新密码:`)
-    if (!newPassword) return
-    
-    if (newPassword.length < 6) {
-      setError('密码长度至少6位')
+    if (!confirm(`确定要重置用户 "${username}" 的密码吗？`)) {
       return
     }
     
     try {
       const response = await fetch(`/api/users-management/${userId}/reset-password`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ newPassword })
+        method: 'PUT',
+        credentials: 'include'
       })
       
       if (!response.ok) {
@@ -256,7 +232,8 @@ function UserManagement() {
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
       
-      setSuccess('密码重置成功')
+      const data = await response.json()
+      setSuccess(`密码重置成功，新密码：${data.newPassword}`)
       
     } catch (err) {
       console.error('重置密码失败:', err)
@@ -280,12 +257,6 @@ function UserManagement() {
     setShowUserForm(true)
   }
 
-  // 处理筛选变化
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
-    setPagination(prev => ({ ...prev, page: 1 }))
-  }
-
   // 清除消息
   const clearMessages = () => {
     setError('')
@@ -297,7 +268,7 @@ function UserManagement() {
     if (isAuthenticated && hasRole('admin')) {
       fetchUsers()
     }
-  }, [isAuthenticated, hasRole, pagination.page, pagination.limit, filters])
+  }, [isAuthenticated, hasRole, pagination.page, pagination.limit])
 
   // 如果正在加载认证状态
   if (authLoading) {
@@ -362,14 +333,6 @@ function UserManagement() {
           </button>
         </div>
       )}
-
-
-
-      {/* 筛选器 */}
-      <UserFilters 
-        filters={filters}
-        onFilterChange={handleFilterChange}
-      />
 
       {/* 用户列表 */}
       <UserList 

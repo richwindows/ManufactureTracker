@@ -49,27 +49,6 @@ function UserForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">角色</label>
-              <select
-                value={userForm.role}
-                onChange={(e) => onFormChange('role', e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="viewer">查看者</option>
-                <option value="operator">操作员</option>
-                <option value="admin">管理员</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">部门</label>
-              <input
-                type="text"
-                value={userForm.department}
-                onChange={(e) => onFormChange('department', e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700">电话</label>
               <input
                 type="text"
