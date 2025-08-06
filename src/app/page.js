@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, Upload, Users, LogOut } from 'lucide-react'
+import { Package, Upload, Users, LogOut, Search } from 'lucide-react'
 import ProductList from '@/components/ProductList'
 import ProductListByStatus from '@/components/ProductListByStatus'
 import BulkImport from '@/components/BulkImport'
@@ -141,6 +141,101 @@ function Home() {
     barcode.barcode_data?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // 出货角色的简化界面
+  if (user?.role === 'shipping_receiving') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+        {/* 简化的页面标题栏 */}
+        <header className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-xl">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-6">
+              <div className="flex items-center">
+                <Package className="h-8 w-8 text-cyan-400 mr-3 drop-shadow-lg" />
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">出货管理系统</h1>
+                  <p className="text-sm text-cyan-200/80">产品搜索和查询</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                {/* 用户信息 */}
+                {user && (
+                  <div className="flex items-center space-x-3 text-white/90">
+                    <div className="text-right">
+                      <div className="text-sm font-medium">{user.username}</div>
+                      <div className="text-xs text-white/70">出货管理</div>
+                    </div>
+                  </div>
+                )}
+                
+                <button
+                  onClick={logout}
+                  className="group bg-gradient-to-r from-gray-500/20 to-slate-500/20 hover:from-gray-500/30 hover:to-slate-500/30 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  <LogOut className="h-4 w-4 text-gray-400 group-hover:text-gray-300" />
+                  <span className="font-medium">退出</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* 搜索框 */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-6 mb-8">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="搜索产品（客户名、产品ID、样式、条码）..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-lg"
+              />
+            </div>
+          </div>
+
+          {/* 搜索结果 */}
+          {searchTerm && (
+            <div className="bg-white rounded-2xl shadow-xl border border-white/20">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900">
+                  搜索结果 ({filteredProducts.length + filteredScannedOnlyBarcodes.length} 条)
+                </h2>
+              </div>
+              
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">搜索中...</p>
+                </div>
+              ) : (
+                <div className="p-6">
+                  <ProductListByStatus 
+                    products={filteredProducts} 
+                    scannedOnlyBarcodes={filteredScannedOnlyBarcodes}
+                    onDelete={() => {}} // 出货角色不能删除
+                    onStatusUpdate={() => {}} // 出货角色不能更新状态
+                    readOnly={true} // 只读模式
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 空状态提示 */}
+          {!searchTerm && (
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-12 text-center">
+              <Search className="h-16 w-16 text-white/40 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-white/80 mb-2">开始搜索</h3>
+              <p className="text-white/60">在上方搜索框中输入关键词来查找产品</p>
+            </div>
+          )}
+        </main>
+      </div>
+    )
+  }
+
+  // 原有的完整界面（其他角色）
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* 页面标题栏 */}
@@ -159,7 +254,7 @@ function Home() {
               {user && (
                 <div className="flex items-center space-x-3 text-white/90">
                   <div className="text-right">
-                    <div className="text-sm font-medium">{user.full_name}</div>
+                    <div className="text-sm font-medium">{user.username}</div>
                     <div className="text-xs text-white/70">
                       {user.role === 'admin' && '管理员'}
                       {user.role === 'operator' && '操作员'}

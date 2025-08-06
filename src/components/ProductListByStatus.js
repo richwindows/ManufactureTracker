@@ -22,7 +22,14 @@ import {
   Hash
 } from 'lucide-react'
 
-export default function ProductListByStatus({ products, scannedOnlyBarcodes = [], onDelete, onStatusUpdate, onRefresh }) {
+export default function ProductListByStatus({ 
+  products, 
+  scannedOnlyBarcodes = [], 
+  onDelete, 
+  onStatusUpdate, 
+  onRefresh,
+  readOnly = false // 新增只读模式参数
+}) {
   const [expandedStatuses, setExpandedStatuses] = useState({})
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [editingStatus, setEditingStatus] = useState(null)
