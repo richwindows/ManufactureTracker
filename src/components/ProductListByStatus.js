@@ -22,11 +22,14 @@ import {
   Hash
 } from 'lucide-react'
 
-export default function ProductListByStatus({ products, scannedOnlyBarcodes = [], onDelete, onStatusUpdate }) {
+export default function ProductListByStatus({ products, scannedOnlyBarcodes = [], onDelete, onStatusUpdate, onRefresh }) {
   const [expandedStatuses, setExpandedStatuses] = useState({})
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [editingStatus, setEditingStatus] = useState(null)
   const [newStatus, setNewStatus] = useState('')
+  // 添加扫码记录编辑相关状态
+  const [editingBarcodeStatus, setEditingBarcodeStatus] = useState(null)
+  const [newBarcodeStatus, setNewBarcodeStatus] = useState('')
 
   const statusOptions = [
     'scheduled',
@@ -61,8 +64,8 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
         mergedBarcodes[barcodeData] = barcode
       } else {
         // 比较时间，保留最新的记录
-        const currentTime = new Date(barcode.scan_time)
-        const existingTime = new Date(mergedBarcodes[barcodeData].scan_time)
+        const currentTime = new Date(barcode.last_scan_time || barcode.created_at)
+        const existingTime = new Date(mergedBarcodes[barcodeData].last_scan_time || mergedBarcodes[barcodeData].created_at)
         
         if (currentTime > existingTime) {
           mergedBarcodes[barcodeData] = barcode
@@ -72,7 +75,7 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
     
     // 将合并后的条码数据按状态分组
     Object.values(mergedBarcodes).forEach(barcode => {
-      const status = barcode.status || '已扫描'
+      const status = barcode.current_status || '已扫描'
       if (!groups[status]) {
         groups[status] = { products: [], scannedOnly: [] }
       }
@@ -255,6 +258,65 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
   const handleStatusCancel = () => {
     setEditingStatus(null)
     setNewStatus('')
+  }
+
+  // 处理扫码记录状态编辑
+  const handleBarcodeStatusEdit = (barcodeId, currentStatus) => {
+    setEditingBarcodeStatus(barcodeId)
+    setNewBarcodeStatus(currentStatus || '已扫描')
+  }
+
+  // 保存扫码记录状态
+  const handleBarcodeStatusSave = async (barcodeId) => {
+    try {
+      const response = await fetch(`/api/barcode-scans?id=${barcodeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newBarcodeStatus }),
+      })
+
+      if (!response.ok) {
+        throw new Error('更新扫码记录状态失败')
+      }
+
+      setEditingBarcodeStatus(null)
+      setNewBarcodeStatus('')
+      
+      // 刷新数据
+      if (onRefresh) {
+        onRefresh()
+      }
+    } catch (error) {
+      console.error('Error updating barcode scan status:', error)
+      alert('更新扫码记录状态失败')
+    }
+  }
+
+  // 删除扫码记录
+  const handleBarcodeDelete = async (barcodeId) => {
+    if (!confirm('确定要删除这条扫码记录吗？')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/barcode-scans?id=${barcodeId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('删除扫码记录失败')
+      }
+
+      // 刷新数据
+      if (onRefresh) {
+        onRefresh()
+      }
+    } catch (error) {
+      console.error('Error deleting barcode scan:', error)
+      alert('删除扫码记录失败')
+    }
   }
 
   // 检查是否有数据
@@ -449,9 +511,45 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">-</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">-</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                              {barcode.status || '已扫描'}
-                            </span>
+                            {editingBarcodeStatus === barcode.id ? (
+                              <div className="flex items-center space-x-2">
+                                <select
+                                  value={newBarcodeStatus}
+                                  onChange={(e) => setNewBarcodeStatus(e.target.value)}
+                                  className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  {statusOptions.map(option => (
+                                    <option key={option} value={option}>
+                                      {option === 'scheduled' ? '已排产' : option}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => handleBarcodeStatusSave(barcode.id)}
+                                  className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingBarcodeStatus(null)}
+                                  className="text-red-600 hover:text-red-800 p-1 rounded-md hover:bg-red-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                  {barcode.current_status || '已扫描'}
+                                </span>
+                                <button
+                                  onClick={() => handleBarcodeStatusEdit(barcode.id, barcode.current_status)}
+                                  className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-50"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <code className="text-sm bg-indigo-100 px-2 py-1 rounded font-mono text-indigo-800">{barcode.barcode_data}</code>
@@ -459,11 +557,19 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                              <span>{formatDate(barcode.scan_time)}</span>
+                              <span>{formatDate(barcode.last_scan_time || barcode.created_at)}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <span className="text-gray-400">-</span>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleBarcodeDelete(barcode.id)}
+                                className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition-colors"
+                                title="删除扫码记录"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

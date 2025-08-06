@@ -70,8 +70,9 @@ export default function BarcodeCollectorPage() {
         <div className="mt-8 bg-white/12 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20">
           <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">使用说明</h3>
           <div className="text-white/80 space-y-2">
-            <p>• <strong className="text-cyan-400">条码格式：</strong>仅支持4位数字格式（如：1234）</p>
-            <p>• <strong className="text-emerald-400">重复检测：</strong>系统会自动检测并阻止重复条码的录入</p>
+            <p>• <strong className="text-cyan-400">条码格式：</strong>支持简化条码格式（如：Rich-07212025-05）</p>
+            <p>• <strong className="text-emerald-400">状态选择：</strong>可选择已切割、已清角、已入库、部分出库、已出库等状态</p>
+            <p>• <strong className="text-orange-400">扫描记录：</strong>每次扫描会在barcode_scans表中创建一条记录</p>
             <p>• <strong className="text-blue-400">全屏显示：</strong>点击"全屏显示"按钮或按F11进入全屏模式</p>
             <p>• <strong className="text-purple-400">退出全屏：</strong>在全屏模式下按ESC或F11键退出</p>
             <p>• <strong className="text-pink-400">实时更新：</strong>数据每秒自动刷新，显示最新的统计信息</p>

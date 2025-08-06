@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 
 export default function BarcodeManager({ onBarcodeAdded }) {
   const [barcode, setBarcode] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('已切割'); // 默认状态
   const [recentBarcodes, setRecentBarcodes] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -12,13 +13,22 @@ export default function BarcodeManager({ onBarcodeAdded }) {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
 
+  // 可选择的状态列表
+  const statusOptions = [
+    '已切割',
+    '已清角', 
+    '已入库',
+    '部分出库',
+    '已出库'
+  ];
+
   useEffect(() => {
     // 设置默认日期为今天
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
     
     // 加载最近的条码记录
-    // fetchRecentBarcodes();
+    fetchRecentBarcodes();
     
     // 聚焦到输入框
     if (inputRef.current) {
@@ -46,6 +56,11 @@ export default function BarcodeManager({ onBarcodeAdded }) {
       return;
     }
 
+    if (!selectedStatus) {
+      showMessage('error', '请选择状态');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -54,13 +69,16 @@ export default function BarcodeManager({ onBarcodeAdded }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ barcode: barcode.trim() }),
+        body: JSON.stringify({ 
+          barcode: barcode.trim(),
+          status: selectedStatus
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        showMessage('success', '条码添加成功！');
+        showMessage('success', `条码添加成功！状态: ${selectedStatus}`);
         setBarcode('');
         fetchRecentBarcodes();
         if (onBarcodeAdded) {
@@ -139,6 +157,18 @@ export default function BarcodeManager({ onBarcodeAdded }) {
     });
   };
 
+  // 获取状态颜色
+  const getStatusColor = (status) => {
+    const colorMap = {
+      '已切割': 'bg-orange-100 text-orange-800',
+      '已清角': 'bg-yellow-100 text-yellow-800',
+      '已入库': 'bg-green-100 text-green-800',
+      '部分出库': 'bg-blue-100 text-blue-800',
+      '已出库': 'bg-purple-100 text-purple-800'
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-800';
+  };
+
   return (
     <div className="bg-white p-3 rounded-lg shadow-lg">
       <h2 className="text-xl font-bold mb-3 text-gray-800">条码数据收集器</h2>
@@ -156,23 +186,41 @@ export default function BarcodeManager({ onBarcodeAdded }) {
 
       {/* 条码输入表单 */}
       <form onSubmit={addBarcode} className="mb-3">
-        <div className="flex gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            placeholder="输入条码 (如: 1@Rich-07212025-05)..."
-            className="flex-1 px-3 py-2 text-lg border border-gray-300 rounded focus:outline-none focus:border-blue-500"
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? '添加中...' : '添加条码'}
-          </button>
+        <div className="space-y-2">
+          {/* 条码输入 */}
+          <div className="flex gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="输入条码 (如: Rich-052125-16-04)..."
+              className="flex-1 px-3 py-2 text-lg border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              disabled={loading}
+            />
+          </div>
+          
+          {/* 状态选择 */}
+          <div className="flex gap-2 items-center">
+            <label className="text-sm font-medium text-gray-700 min-w-fit">选择状态:</label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              disabled={loading}
+            >
+              {statusOptions.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? '添加中...' : '添加条码'}
+            </button>
+          </div>
         </div>
       </form>
 
@@ -183,11 +231,18 @@ export default function BarcodeManager({ onBarcodeAdded }) {
           {recentBarcodes.length > 0 ? (
             <ul className="space-y-1">
               {recentBarcodes.map((item, index) => (
-                <li key={item.id} className="text-sm">
-                  <span className="font-mono bg-yellow-200 px-1 py-0.5 rounded text-xs">
-                    {item.barcode}
-                  </span>
-                  <span className="ml-2 text-gray-600 text-xs">
+                <li key={item.id} className="text-sm flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono bg-yellow-200 px-1 py-0.5 rounded text-xs">
+                      {item.barcode}
+                    </span>
+                    {item.status && (
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(item.status)}`}>
+                        {item.status}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-gray-600 text-xs">
                     {formatDateTime(item.scannedAt)}
                   </span>
                 </li>

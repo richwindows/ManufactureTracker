@@ -17,8 +17,8 @@ export async function GET(request) {
         const { count: todayCount, error: todayError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('scan_time', `${today}T00:00:00Z`)
-          .lt('scan_time', `${today}T23:59:59Z`);
+          .gte('created_at', `${today}T00:00:00Z`)
+          .lt('created_at', `${today}T23:59:59Z`);
         
         if (todayError) {
           console.error('Error fetching today count:', todayError);
@@ -30,10 +30,10 @@ export async function GET(request) {
         const todayForList = new Date().toISOString().split('T')[0];
         const { data: todayBarcodes, error: todayListError } = await supabase
           .from('barcode_scans')
-          .select('id, barcode_data, scan_time, device_port, status')
-          .gte('scan_time', `${todayForList}T00:00:00Z`)
-          .lt('scan_time', `${todayForList}T23:59:59Z`)
-          .order('scan_time', { ascending: false });
+          .select('id, barcode_data, created_at, device_port, current_status')
+          .gte('created_at', `${todayForList}T00:00:00Z`)
+          .lt('created_at', `${todayForList}T23:59:59Z`)
+          .order('created_at', { ascending: false });
         
         if (todayListError) {
           console.error('Error fetching today list:', todayListError);
@@ -44,9 +44,9 @@ export async function GET(request) {
         const formattedTodayBarcodes = todayBarcodes?.map(barcode => ({
           id: barcode.id,
           barcode: barcode.barcode_data,
-          scannedAt: barcode.scan_time,
+          scannedAt: barcode.created_at,
           device_port: barcode.device_port,
-          status: barcode.status
+          status: barcode.current_status
         })) || [];
         
         return NextResponse.json(formattedTodayBarcodes);
@@ -56,7 +56,7 @@ export async function GET(request) {
           // 手动查询所有记录并按日期分组
           const { data: allBarcodes, error: fallbackError } = await supabase
             .from('barcode_scans')
-            .select('scan_time');
+            .select('created_at');
           
           if (fallbackError) {
             console.error('Fallback query failed:', fallbackError);
@@ -66,7 +66,7 @@ export async function GET(request) {
           // Group by date and count
           const dateGroups = {};
           allBarcodes.forEach(barcode => {
-            const date = new Date(barcode.scan_time).toISOString().split('T')[0];
+            const date = new Date(barcode.created_at).toISOString().split('T')[0];
             dateGroups[date] = (dateGroups[date] || 0) + 1;
           });
           
@@ -93,8 +93,8 @@ export async function GET(request) {
         const { count: dateCount, error: dateError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('scan_time', `${date}T00:00:00Z`)
-          .lt('scan_time', `${date}T23:59:59Z`);
+          .gte('created_at', `${date}T00:00:00Z`)
+          .lt('created_at', `${date}T23:59:59Z`);
         
         if (dateError) {
           console.error('Error fetching date count:', dateError);
@@ -109,8 +109,8 @@ export async function GET(request) {
         const { count: rangeCount, error: rangeError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('scan_time', `${startDate}T00:00:00Z`)
-          .lt('scan_time', `${endDate}T23:59:59Z`);
+          .gte('created_at', `${startDate}T00:00:00Z`)
+          .lt('created_at', `${endDate}T23:59:59Z`);
         
         if (rangeError) {
           console.error('Error fetching range count:', rangeError);
@@ -122,8 +122,8 @@ export async function GET(request) {
         const recentLimit = limit ? parseInt(limit) : 10;
         const { data: recentBarcodes, error: recentError } = await supabase
           .from('barcode_scans')
-          .select('id, barcode_data, scan_time')
-          .order('scan_time', { ascending: false })
+          .select('id, barcode_data, created_at, current_status')
+          .order('created_at', { ascending: false })
           .limit(recentLimit);
         
         if (recentError) {
@@ -135,7 +135,8 @@ export async function GET(request) {
         const formattedBarcodes = recentBarcodes?.map(barcode => ({
           id: barcode.id,
           barcode: barcode.barcode_data,
-          scannedAt: barcode.scan_time
+          scannedAt: barcode.created_at,
+          status: barcode.current_status
         })) || [];
         
         return NextResponse.json(formattedBarcodes);
@@ -145,7 +146,7 @@ export async function GET(request) {
         const { data: allBarcodes, error: allError } = await supabase
           .from('barcode_scans')
           .select('*')
-          .order('scan_time', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(defaultLimit);
         
         if (allError) {
@@ -157,9 +158,9 @@ export async function GET(request) {
         const formattedAllBarcodes = allBarcodes?.map(barcode => ({
           id: barcode.id,
           barcode: barcode.barcode_data,
-          scannedAt: barcode.scan_time,
+          scannedAt: barcode.created_at,
           device_port: barcode.device_port,
-          status: barcode.status
+          status: barcode.current_status
         })) || [];
         
         return NextResponse.json(formattedAllBarcodes);
@@ -173,7 +174,7 @@ export async function GET(request) {
 // POST - 添加新条码
 export async function POST(request) {
   try {
-    const { barcode, device_id } = await request.json();
+    const { barcode, device_id, status } = await request.json();
 
     // 验证条码格式
     if (!barcode || barcode.length < 1 || barcode.length > 100) {
@@ -182,33 +183,101 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // 创建新条码记录
-    const { data: newBarcode, error: createError } = await supabase
+    // 检查条码是否已存在
+    const { data: existingBarcode, error: checkError } = await supabase
       .from('barcode_scans')
-      .insert({
-        barcode_data: barcode,
-        device_port: device_id || null,
-        scan_time: new Date().toISOString(),
-        status: '已切割' // 默认状态
-      })
-      .select()
+      .select('id')
+      .eq('barcode_data', barcode)
       .single();
 
-    if (createError) {
-      console.error('Error creating barcode:', createError);
-      return NextResponse.json({ error: 'Failed to create barcode' }, { status: 500 });
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing barcode:', checkError);
+      return NextResponse.json({ error: 'Failed to check existing barcode' }, { status: 500 });
     }
 
-    // 转换字段名以保持兼容性
-    const formattedBarcode = {
-      id: newBarcode.id,
-      barcode: newBarcode.barcode_data,
-      scannedAt: newBarcode.scan_time,
-      device_port: newBarcode.device_port,
-      status: newBarcode.status
+    // 根据状态映射到对应的时间字段和布尔字段（使用正确的字段名）
+    const statusMapping = {
+      '已排产': { timeField: 'status_1_time', boolField: 'status_1_scheduled' },
+      '已切割': { timeField: 'status_2_time', boolField: 'status_2_cut' }, 
+      '已清角': { timeField: 'status_3_time', boolField: 'status_3_cleaned' },
+      '已入库': { timeField: 'status_4_time', boolField: 'status_4_stored' },
+      '部分出库': { timeField: 'status_5_time', boolField: 'status_5_partial_out' },
+      '已出库': { timeField: 'status_6_time', boolField: 'status_6_shipped' }
     };
 
-    return NextResponse.json(formattedBarcode, { status: 201 });
+    const selectedStatus = status || '已切割'; // 默认状态
+    const statusConfig = statusMapping[selectedStatus];
+    const currentTime = new Date().toISOString();
+
+    if (existingBarcode) {
+      // 如果条码已存在，更新状态
+      const updateData = {
+        updated_at: currentTime
+      };
+
+      if (statusConfig) {
+        updateData[statusConfig.timeField] = currentTime;
+        updateData[statusConfig.boolField] = true;
+      }
+
+      const { data: updatedBarcode, error: updateError } = await supabase
+        .from('barcode_scans')
+        .update(updateData)
+        .eq('id', existingBarcode.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating barcode:', updateError);
+        return NextResponse.json({ error: 'Failed to update barcode' }, { status: 500 });
+      }
+
+      // 转换字段名以保持兼容性
+      const formattedBarcode = {
+        id: updatedBarcode.id,
+        barcode: updatedBarcode.barcode_data,
+        scannedAt: updatedBarcode.created_at,
+        device_port: updatedBarcode.device_port,
+        status: updatedBarcode.current_status || selectedStatus
+      };
+
+      return NextResponse.json(formattedBarcode, { status: 200 });
+    } else {
+      // 如果条码不存在，创建新记录
+      const insertData = {
+        barcode_data: barcode,
+        device_port: device_id || null,
+        created_at: currentTime,
+        updated_at: currentTime
+      };
+
+      if (statusConfig) {
+        insertData[statusConfig.timeField] = currentTime;
+        insertData[statusConfig.boolField] = true;
+      }
+
+      const { data: newBarcode, error: createError } = await supabase
+        .from('barcode_scans')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating barcode:', createError);
+        return NextResponse.json({ error: 'Failed to create barcode' }, { status: 500 });
+      }
+
+      // 转换字段名以保持兼容性
+      const formattedBarcode = {
+        id: newBarcode.id,
+        barcode: newBarcode.barcode_data,
+        scannedAt: newBarcode.created_at,
+        device_port: newBarcode.device_port,
+        status: newBarcode.current_status || selectedStatus
+      };
+
+      return NextResponse.json(formattedBarcode, { status: 201 });
+    }
   } catch (error) {
     console.error('Error creating barcode:', error);
     return NextResponse.json({ error: 'Failed to create barcode' }, { status: 500 });

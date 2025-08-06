@@ -23,11 +23,11 @@ export async function GET(request) {
     const productBarcodes = products?.map(p => p.barcode) || [];
     console.log('Product barcodes:', productBarcodes)
 
-    // 获取所有扫码数据
+    // 获取所有扫码数据 - 使用新的表结构
     const { data: allScans, error: scansError } = await supabase
       .from('barcode_scans')
-      .select('id, barcode_data, scan_time, device_port, status')
-      .order('scan_time', { ascending: false });
+      .select('id, barcode_data, device_port, created_at, updated_at, current_status, last_scan_time')
+      .order('last_scan_time', { ascending: false });
 
     if (scansError) {
       console.error('Error fetching scans:', scansError);
@@ -41,7 +41,10 @@ export async function GET(request) {
       !productBarcodes.includes(scan.barcode_data)
     ).map(scan => ({
       ...scan,
-      status: scan.status || '已扫描' // 确保状态有默认值
+      // 使用 current_status 作为状态，如果没有则默认为 '已扫描'
+      status: scan.current_status || '已扫描',
+      // 使用 last_scan_time 作为扫描时间，如果没有则使用 created_at
+      scan_time: scan.last_scan_time || scan.created_at
     })) || [];
 
     console.log('Scanned-only barcodes:', scannedOnlyBarcodes.length)
