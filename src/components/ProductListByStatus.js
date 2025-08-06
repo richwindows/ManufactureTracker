@@ -30,6 +30,9 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
   // 添加扫码记录编辑相关状态
   const [editingBarcodeStatus, setEditingBarcodeStatus] = useState(null)
   const [newBarcodeStatus, setNewBarcodeStatus] = useState('')
+  // 添加条码内容编辑相关状态
+  const [editingBarcodeContent, setEditingBarcodeContent] = useState(null)
+  const [newBarcodeContent, setNewBarcodeContent] = useState('')
 
   const statusOptions = [
     'scheduled',
@@ -668,4 +671,89 @@ export default function ProductListByStatus({ products, scannedOnlyBarcodes = []
       )}
     </div>
   )
+
+  // 处理条码内容编辑
+  const handleBarcodeContentEdit = (barcodeId, currentContent) => {
+    setEditingBarcodeContent(barcodeId)
+    setNewBarcodeContent(currentContent || '')
+  }
+
+  // 保存条码内容
+  const handleBarcodeContentSave = async (barcodeId) => {
+    if (!newBarcodeContent.trim()) {
+      alert('条码内容不能为空')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/barcode-scans?id=${barcodeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ barcode_data: newBarcodeContent.trim() }),
+      })
+
+      if (!response.ok) {
+        throw new Error('更新条码内容失败')
+      }
+
+      setEditingBarcodeContent(null)
+      setNewBarcodeContent('')
+      
+      // 刷新数据
+      if (onRefresh) {
+        onRefresh()
+      }
+    } catch (error) {
+      console.error('Error updating barcode content:', error)
+      alert('更新条码内容失败')
+    }
+  }
+
+  // 取消条码内容编辑
+  const handleBarcodeContentCancel = () => {
+    setEditingBarcodeContent(null)
+    setNewBarcodeContent('')
+  }
+
+  // 在条码显示部分添加编辑功能
+  <td className="px-6 py-4 whitespace-nowrap">
+    {editingBarcodeContent === barcode.id ? (
+      <div className="flex items-center space-x-2">
+        <input
+          type="text"
+          value={newBarcodeContent}
+          onChange={(e) => setNewBarcodeContent(e.target.value)}
+          className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+          placeholder="输入条码内容"
+        />
+        <button
+          onClick={() => handleBarcodeContentSave(barcode.id)}
+          className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50"
+          title="保存"
+        >
+          <Check className="h-4 w-4" />
+        </button>
+        <button
+          onClick={handleBarcodeContentCancel}
+          className="text-red-600 hover:text-red-800 p-1 rounded-md hover:bg-red-50"
+          title="取消"
+        >
+          <XCircle className="h-4 w-4" />
+        </button>
+      </div>
+    ) : (
+      <div className="flex items-center space-x-2">
+        <code className="text-sm bg-indigo-100 px-2 py-1 rounded font-mono text-indigo-800">{barcode.barcode_data}</code>
+        <button
+          onClick={() => handleBarcodeContentEdit(barcode.id, barcode.barcode_data)}
+          className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-50"
+          title="编辑条码"
+        >
+          <Edit className="h-3 w-3" />
+        </button>
+      </div>
+    )}
+  </td>
 }

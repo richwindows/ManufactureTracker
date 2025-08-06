@@ -106,6 +106,29 @@ function Home() {
     }
   }
 
+  // 处理产品状态更新
+  const handleProductStatusUpdate = async (productId, newStatus) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus
+        })
+      })
+
+      if (response.ok) {
+        fetchProducts() // 刷新产品数据
+      } else {
+        console.error('Failed to update product status')
+      }
+    } catch (error) {
+      console.error('Error updating product status:', error)
+    }
+  }
+
   // 搜索过滤 - 同时过滤产品和仅扫码数据
   const filteredProducts = products.filter(product =>
     product.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -252,12 +275,13 @@ function Home() {
                       products={filteredProducts} 
                       scannedOnlyBarcodes={filteredScannedOnlyBarcodes}
                       onDelete={handleProductDelete}
-                      onStatusUpdate={fetchProducts}
+                      onStatusUpdate={handleProductStatusUpdate}
                     />
                   ) : (
                     <ProductList 
                       products={filteredProducts} 
-                      onDelete={handleProductDelete} 
+                      onDelete={handleProductDelete}
+                      onStatusUpdate={handleProductStatusUpdate}
                     />
                   )}
                 </div>
