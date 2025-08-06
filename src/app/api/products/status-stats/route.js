@@ -122,14 +122,37 @@ export async function GET(request) {
       !productBarcodes.includes(scan.barcode_data)
     )
 
+    // 合并相同barcode_data的记录，保留最新状态
+    const mergedBarcodes = {}
+    
+    scannedOnlyBarcodes.forEach(barcode => {
+      const barcodeData = barcode.barcode_data
+      
+      if (!mergedBarcodes[barcodeData]) {
+        mergedBarcodes[barcodeData] = barcode
+      } else {
+        // 比较时间，保留最新的记录
+        const currentTime = new Date(barcode.scan_time)
+        const existingTime = new Date(mergedBarcodes[barcodeData].scan_time)
+        
+        if (currentTime > existingTime) {
+          mergedBarcodes[barcodeData] = barcode
+        }
+      }
+    })
+
+    // 将合并后的条码数据转换为数组
+    const uniqueScannedOnlyBarcodes = Object.values(mergedBarcodes)
+
     console.log('📊 数据统计:', {
       products: productsArray.length,
-      scannedOnly: scannedOnlyBarcodes.length,
+      scannedOnlyOriginal: scannedOnlyBarcodes.length,
+      scannedOnlyMerged: uniqueScannedOnlyBarcodes.length,
       totalBarcodes: productBarcodes.length
     })
 
-    // 3. 计算总数（产品数据 + 仅扫码数据）
-    const total = productsArray.length + scannedOnlyBarcodes.length
+    // 3. 计算总数（产品数据 + 合并后的仅扫码数据）
+    const total = productsArray.length + uniqueScannedOnlyBarcodes.length
 
     // 4. 计算今日扫描统计
     let todayScanned = 0
@@ -141,7 +164,7 @@ export async function GET(request) {
         const rangeStart = new Date(`${startDate}T00:00:00.000Z`)
         const rangeEnd = new Date(`${endDate}T23:59:59.999Z`)
         return scannedDate >= rangeStart && scannedDate <= rangeEnd
-      }).length + scannedOnlyBarcodes.length // 仅扫码数据在时间范围内已经被过滤了
+      }).length + uniqueScannedOnlyBarcodes.length // 合并后的仅扫码数据在时间范围内已经被过滤了
     } else {
       // 如果没有时间范围，计算今天的扫描
       const today = new Date()
@@ -153,7 +176,7 @@ export async function GET(request) {
         return scannedDate >= today
       }).length
 
-      const todayScannedOnly = scannedOnlyBarcodes.filter(scan => {
+      const todayScannedOnly = uniqueScannedOnlyBarcodes.filter(scan => {
         const scannedDate = new Date(scan.scan_time)
         return scannedDate >= today
       }).length
@@ -169,8 +192,8 @@ export async function GET(request) {
       return acc
     }, {})
 
-    // 统计仅扫码数据的状态
-    scannedOnlyBarcodes.forEach(scan => {
+    // 统计合并后的仅扫码数据的状态
+    uniqueScannedOnlyBarcodes.forEach(scan => {
       const status = scan.status || '已扫描'
       statusCounts[status] = (statusCounts[status] || 0) + 1
     })
@@ -193,7 +216,8 @@ export async function GET(request) {
       // 添加详细统计信息
       details: {
         productsCount: productsArray.length,
-        scannedOnlyCount: scannedOnlyBarcodes.length
+        scannedOnlyCount: uniqueScannedOnlyBarcodes.length,
+        originalScannedOnlyCount: scannedOnlyBarcodes.length // 保留原始数量用于调试
       }
     }
 
