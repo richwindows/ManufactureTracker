@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { PERMISSIONS } from '@/lib/permissions'
+import { PERMISSIONS } from '@/lib/auth'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ProductListByStatus from '@/components/ProductListByStatus'
 import { 
