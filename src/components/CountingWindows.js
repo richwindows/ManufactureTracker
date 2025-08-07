@@ -191,52 +191,73 @@ export default function FullScreenDisplay({ isCompact = false }) {
               className="flex flex-col items-center justify-center bg-white/8 backdrop-blur-md border border-white/15 shadow-xl rounded-2xl p-4 cursor-pointer hover:bg-white/12 transition-all duration-300"
               onClick={handleTodayCountClick}
             >
-              <h2 className="text-lg md:text-xl font-bold bg-gradient-to-r from-red-400 via-pink-500 to-rose-400 bg-clip-text text-transparent mb-2">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-red-400 via-pink-500 to-rose-400 bg-clip-text text-transparent mb-2">
                 今日总数
               </h2>
-              <div className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
+              <div className="text-6xl md:text-8xl lg:text-9xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
                 {todayCount}
               </div>
             </div>
 
-            {/* 最高记录 */}
-            <div className="flex flex-col items-center justify-center bg-white/8 backdrop-blur-md border border-white/15 shadow-xl rounded-2xl p-4">
-              <div className="flex items-center mb-2">
-                <BarChart3 className="w-5 h-5 text-cyan-400 mr-2" />
-                <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                  最高记录
-                </h3>
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-cyan-300 mb-1">
-                  {formatDisplayDate(highestRecord.date)}
+            {/* 最佳记录 */}
+            <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-md border-2 border-yellow-400/50 shadow-2xl hover:shadow-yellow-400/30 transition-all duration-300">
+              {/* 背景光晕效果 */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-yellow-300/10 via-orange-300/10 to-red-300/10 blur-xl"></div>
+              
+              <div className="relative z-10 w-full">
+                {/* 标题部分 */}
+                <div className="flex items-center justify-center mb-3">
+                  <BarChart3 className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 text-yellow-300 mr-2 drop-shadow-2xl" />
+                  <h2 className="text-xl md:text-2xl lg:text-3xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl">
+                    🏆 Best Record
+                  </h2>
                 </div>
-                <div className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                  {highestRecord.count}
+                
+                {/* 内容区域 */}
+                <div className="space-y-3">
+                  {/* 日期部分 */}
+                  <div className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-yellow-300/30">
+                    <span className="text-base md:text-lg lg:text-xl font-bold text-yellow-200 drop-shadow-lg">
+                      📅 Date:
+                    </span>
+                    <span className="text-lg md:text-xl lg:text-2xl font-black text-white drop-shadow-2xl bg-gradient-to-r from-white via-yellow-100 to-orange-100 bg-clip-text text-transparent">
+                      {formatDisplayDate(highestRecord.date)}
+                    </span>
+                  </div>
+                  
+                  {/* 数字部分 - 最突出 */}
+                  <div className="flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm border-2 border-yellow-300/50 shadow-xl">
+                    <span className="text-base md:text-lg lg:text-xl font-bold text-yellow-200 drop-shadow-lg">
+                      🪟 Windows/Day:
+                    </span>
+                    <span className="text-4xl md:text-5xl lg:text-6xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl transform hover:scale-105 transition-transform duration-300 leading-none">
+                      {highestRecord.count}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 当前时间和日期 */}
-            <div className="flex flex-col items-center justify-center bg-white/8 backdrop-blur-md border border-white/15 shadow-xl rounded-2xl p-4">
-              <div className="flex items-center mb-2">
-                <Calendar className="w-5 h-5 text-emerald-400 mr-2" />
-                <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-                  当前时间
+            {/* 时间和日期 */}
+            <div className="flex flex-col justify-center space-y-4">
+              <div className="text-center">
+                <h3 className="text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent mb-2 flex items-center justify-center">
+                  <Calendar className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-emerald-400 mr-2" />
+                  Today&apos;s Date
                 </h3>
               </div>
               <div className="text-center">
-                <div className="text-lg md:text-2xl font-bold text-white mb-1">
+                <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
                   {currentDate ? formatDate(currentDate) : '--'}
                 </div>
-                <div className="text-xl md:text-3xl font-bold text-emerald-300">
+                <div className="text-3xl md:text-4xl lg:text-5xl font-bold text-emerald-300">
                   {currentTime ? formatTime(currentTime) : '--:--:--'}
                 </div>
               </div>
               {connectionError && (
                 <div className="flex items-center mt-2">
-                  <WifiOff className="w-4 h-4 text-red-400 mr-1" />
-                  <span className="text-xs text-red-400">连接中断</span>
+                  <WifiOff className="w-6 h-6 md:w-8 md:h-8 text-red-400 mr-1" />
+                  <span className="text-base md:text-lg text-red-400">连接中断</span>
                 </div>
               )}
             </div>
@@ -255,8 +276,8 @@ export default function FullScreenDisplay({ isCompact = false }) {
             >
               <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <div>
-                  <h3 className="text-xl font-bold">今日扫描条码列表</h3>
-                  <p className="text-sm text-blue-100 mt-1">
+                  <h3 className="text-2xl md:text-3xl font-bold">今日扫描条码列表</h3>
+                  <p className="text-lg md:text-xl text-blue-100 mt-1">
                     {currentDate ? formatDate(currentDate) : new Date().toLocaleDateString('en-CA')}
                   </p>
                 </div>
@@ -264,39 +285,39 @@ export default function FullScreenDisplay({ isCompact = false }) {
                   onClick={() => setShowTodayModal(false)}
                   className="p-1 hover:bg-white/20 rounded-full transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-8 h-8 md:w-10 md:h-10" />
                 </button>
               </div>
               
               <div className="p-4 max-h-[60vh] overflow-y-auto">
                 {loadingBarcodes ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="text-gray-500">加载今日数据中...</div>
+                    <div className="text-gray-500 text-xl md:text-2xl">加载今日数据中...</div>
                   </div>
                 ) : todayBarcodes.length > 0 ? (
                   <div className="space-y-2">
-                    <div className="text-sm text-gray-600 mb-4 bg-blue-50 p-2 rounded">
+                    <div className="text-lg md:text-xl text-gray-600 mb-4 bg-blue-50 p-2 rounded">
                       今日共扫描 <span className="font-bold text-blue-600">{todayBarcodes.length}</span> 个条码
                     </div>
                     {todayBarcodes.map((item, index) => (
                       <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                         <div className="flex items-center space-x-4">
-                          <span className="text-sm text-gray-500 w-8">
+                          <span className="text-lg md:text-xl text-gray-500 w-8">
                             {index + 1}
                           </span>
-                          <span className="font-mono bg-yellow-200 px-2 py-1 rounded text-sm font-semibold">
+                          <span className="font-mono bg-yellow-200 px-2 py-1 rounded text-lg md:text-xl font-semibold">
                             {item.barcode}
                           </span>
                           {item.device_port && (
-                            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                            <span className="text-base md:text-lg text-gray-500 bg-gray-200 px-2 py-1 rounded">
                               端口: {item.device_port}
                             </span>
                           )}
-                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                          <span className="text-base md:text-lg text-green-600 bg-green-100 px-2 py-1 rounded">
                             {item.status}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-lg md:text-xl text-gray-600">
                           {formatDateTime(item.scannedAt)}
                         </div>
                       </div>
@@ -304,8 +325,8 @@ export default function FullScreenDisplay({ isCompact = false }) {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <div className="text-gray-500 mb-2">今日暂无扫描记录</div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-gray-500 mb-2 text-xl md:text-2xl">今日暂无扫描记录</div>
+                    <div className="text-lg md:text-xl text-gray-400">
                       {currentDate ? formatDate(currentDate) : new Date().toLocaleDateString('en-CA')} 还没有条码扫描
                     </div>
                   </div>
@@ -321,76 +342,85 @@ export default function FullScreenDisplay({ isCompact = false }) {
   // 全屏模式布局
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex flex-col lg:flex-row">
+      <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex flex-col lg:flex-row">
         {/* Left Section - Today's Count */}
-        <div className="flex-1 lg:flex-[7] flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 lg:border-r-4 border-blue-400/30 shadow-2xl min-h-[50vh] lg:min-h-screen">
+        <div className="flex-1 lg:flex-[7] flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 lg:border-r-4 border-blue-400/30 shadow-2xl h-full">
           <div 
-            className="text-center p-6 lg:p-12 rounded-3xl bg-white/8 backdrop-blur-md border border-white/15 shadow-2xl max-w-4xl mx-auto cursor-pointer hover:bg-white/12 transition-all duration-300"
+            className="text-center p-4 lg:p-8 rounded-3xl bg-white/8 backdrop-blur-md border border-white/15 shadow-2xl max-w-4xl mx-auto cursor-pointer hover:bg-white/12 transition-all duration-300"
             onClick={handleTodayCountClick}
           >
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-red-400 via-pink-500 to-rose-400 bg-clip-text text-transparent mb-6 lg:mb-10 drop-shadow-lg leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold bg-gradient-to-r from-red-400 via-pink-500 to-rose-400 bg-clip-text text-transparent mb-4 lg:mb-6 drop-shadow-lg leading-tight">
               Total Windows Today
             </h1>
-            <div className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[28rem] font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent leading-none drop-shadow-2xl">
+            <div className="text-[8rem] sm:text-[10rem] md:text-[12rem] lg:text-[16rem] xl:text-[20rem] font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent leading-none drop-shadow-2xl">
               {todayCount}
             </div>
           </div>
         </div>
 
         {/* Right Section - Records and Time */}
-        <div className="flex-1 lg:flex-[5] flex flex-col justify-center p-4 lg:p-8 space-y-6 lg:space-y-8 min-h-[50vh] lg:min-h-screen">
-          {/* Best Record Section */}
-          <div className="flex flex-col items-center justify-center text-center p-4 lg:p-6 rounded-2xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300">
-            <div className="flex items-center justify-center mb-4 lg:mb-6">
-              <BarChart3 className="w-8 h-8 lg:w-12 lg:h-12 text-cyan-400 mr-3 lg:mr-4 drop-shadow-lg" />
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                Best Record
-              </h2>
-            </div>
+        <div className="flex-1 lg:flex-[5] flex flex-col justify-center p-3 lg:p-6 space-y-3 lg:space-y-4 h-full">
+          {/* Best Record Section - 第二大 */}
+          <div className="relative flex flex-col items-center justify-center text-center p-4 lg:p-6 rounded-2xl bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-md border-2 border-yellow-400/50 shadow-2xl hover:shadow-yellow-400/30 transition-all duration-300 flex-[3] overflow-hidden">
+            {/* 背景光晕效果 */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-yellow-300/10 via-orange-300/10 to-red-300/10 blur-xl"></div>
             
-            <div className="space-y-3 lg:space-y-4">
-              <div className="flex flex-col items-center justify-center gap-2 lg:gap-4">
-                <span className="text-lg sm:text-xl lg:text-3xl xl:text-4xl font-bold text-cyan-300">
-                  Date:
-                </span>
-                <span className="text-xl sm:text-2xl lg:text-4xl xl:text-5xl font-bold text-white drop-shadow-lg">
-                  {formatDisplayDate(highestRecord.date)}
-                </span>
+            <div className="relative z-10 w-full">
+              {/* 标题部分 */}
+              <div className="flex items-center justify-center mb-3 lg:mb-4">
+                <BarChart3 className="w-8 h-8 lg:w-12 lg:h-12 text-yellow-300 mr-2 lg:mr-3 drop-shadow-2xl" />
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl">
+                  🏆 Best Record
+                </h2>
               </div>
               
-              <div className="flex flex-col items-center justify-center gap-2 lg:gap-4">
-                <span className="text-lg sm:text-xl lg:text-3xl xl:text-4xl font-bold text-cyan-300">
-                  Windows/Day:
-                </span>
-                <span className="text-3xl sm:text-4xl lg:text-6xl xl:text-7xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-lg">
-                  {highestRecord.count}
-                </span>
+              {/* 内容区域 */}
+              <div className="space-y-3 lg:space-y-4">
+                {/* 日期部分 */}
+                <div className="flex flex-col items-center justify-center gap-1 lg:gap-2 p-2 lg:p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-yellow-300/30">
+                  <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-yellow-200 drop-shadow-lg">
+                    📅 Date:
+                  </span>
+                  <span className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-2xl bg-gradient-to-r from-white via-yellow-100 to-orange-100 bg-clip-text text-transparent">
+                    {formatDisplayDate(highestRecord.date)}
+                  </span>
+                </div>
+                
+                {/* 数字部分 - 最突出 */}
+                <div className="flex flex-col items-center justify-center gap-1 lg:gap-2 p-3 lg:p-4 rounded-xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm border-2 border-yellow-300/50 shadow-xl">
+                  <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-yellow-200 drop-shadow-lg">
+                    🪟 Windows/Day:
+                  </span>
+                  <span className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl transform hover:scale-105 transition-transform duration-300 leading-none">
+                    {highestRecord.count}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Today's Date Section */}
-          <div className="flex flex-col items-center justify-center text-center p-4 lg:p-6 rounded-2xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300">
-            <div className="flex items-center justify-center mb-4 lg:mb-6">
-              <Calendar className="w-8 h-8 lg:w-12 lg:h-12 text-emerald-400 mr-3 lg:mr-4 drop-shadow-lg" />
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
+          {/* Today's Date Section - 缩小 */}
+          <div className="flex flex-col items-center justify-center text-center p-2 lg:p-3 rounded-xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300 flex-[1]">
+            <div className="flex items-center justify-center mb-1 lg:mb-2">
+              <Calendar className="w-5 h-5 lg:w-7 lg:h-7 text-emerald-400 mr-1 lg:mr-2 drop-shadow-lg" />
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
                 Today&apos;s Date
               </h3>
             </div>
-            <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white drop-shadow-lg mb-2 lg:mb-4">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
               {currentDate ? formatDate(currentDate) : '--'}
             </div>
           </div>
 
-          {/* Current Time Section */}
-          <div className="flex flex-col items-center justify-center text-center p-4 lg:p-6 rounded-2xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300">
-            <div className="flex items-center justify-center mb-4 lg:mb-6">
-              <Clock className="w-8 h-8 lg:w-12 lg:h-12 text-blue-400 mr-3 lg:mr-4 drop-shadow-lg" />
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          {/* Current Time Section - 缩小 */}
+          <div className="flex flex-col items-center justify-center text-center p-2 lg:p-3 rounded-xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300 flex-[1]">
+            <div className="flex items-center justify-center mb-1 lg:mb-2">
+              <Clock className="w-5 h-5 lg:w-7 lg:h-7 text-blue-400 mr-1 lg:mr-2 drop-shadow-lg" />
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Current Time
               </h3>
             </div>
-            <div className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white drop-shadow-lg font-mono mb-4 lg:mb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg font-mono mb-1 lg:mb-2">
               {currentTime ? formatTime(currentTime) : '--:--:--'}
             </div>
             
@@ -398,13 +428,13 @@ export default function FullScreenDisplay({ isCompact = false }) {
             <div className="flex items-center justify-center">
               {connectionError ? (
                 <>
-                  <WifiOff className="w-6 h-6 lg:w-8 lg:h-8 text-red-400 mr-2 lg:mr-3" />
-                  <span className="text-lg lg:text-2xl text-red-400 font-semibold">连接中断</span>
+                  <WifiOff className="w-4 h-4 lg:w-5 lg:h-5 text-red-400 mr-1" />
+                  <span className="text-sm lg:text-base text-red-400 font-semibold">连接中断</span>
                 </>
               ) : (
                 <>
-                  <Wifi className="w-6 h-6 lg:w-8 lg:h-8 text-green-400 mr-2 lg:mr-3" />
-                  <span className="text-lg lg:text-2xl text-green-400 font-semibold">连接正常</span>
+                  <Wifi className="w-4 h-4 lg:w-5 lg:h-5 text-green-400 mr-1" />
+                  <span className="text-sm lg:text-base text-green-400 font-semibold">连接正常</span>
                 </>
               )}
             </div>

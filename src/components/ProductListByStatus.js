@@ -42,7 +42,7 @@ export default function ProductListByStatus({
   const [newBarcodeContent, setNewBarcodeContent] = useState('')
 
   const statusOptions = [
-    'scheduled',
+    '已排产',
     '已切割',
     '已清角', 
     '已入库',
@@ -56,7 +56,7 @@ export default function ProductListByStatus({
     
     // 处理产品数据
     products.forEach(product => {
-      const status = product.status || 'scheduled'
+      const status = product.status || '已排产'
       if (!groups[status]) {
         groups[status] = { products: [], scannedOnly: [] }
       }
@@ -408,7 +408,7 @@ export default function ProductListByStatus({
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">类型</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">客户</th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">产品信息</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">样式</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">规格</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">状态</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">条码</th>
@@ -428,8 +428,7 @@ export default function ProductListByStatus({
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.customer}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{product.productId}</div>
-                            <div className="text-sm text-gray-500">{product.style}</div>
+                            <div className="text-sm font-medium text-gray-900">{product.style}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div className="space-y-1">
@@ -484,7 +483,10 @@ export default function ProductListByStatus({
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                              <span>{formatDate(product.createdAt)}</span>
+                              <div className="space-y-1">
+                                <div>扫描: {product.scanned_at ? formatDate(product.scanned_at) : '未扫描'}</div>
+                                <div className="text-xs text-gray-400">创建: {formatDate(product.created_at)}</div>
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -655,7 +657,14 @@ export default function ProductListByStatus({
               </div>
               
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">扫描时间</label>
+                    <div className="flex items-center text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                      {selectedProduct.scanned_at ? formatDate(selectedProduct.scanned_at) : '未扫描'}
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">创建时间</label>
                     <div className="flex items-center text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">

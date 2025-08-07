@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { PERMISSIONS } from '@/lib/permissions'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ProductListByStatus from '@/components/ProductListByStatus'
 import { 
   Search, 
   Package, 
@@ -20,10 +21,160 @@ function ShippingPage() {
   const { user, logout, hasPermission, permissions } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
+  const [todayProducts, setTodayProducts] = useState([])
+  const [todayScannedOnly, setTodayScannedOnly] = useState([])
   const [loading, setLoading] = useState(false)
+  const [todayLoading, setTodayLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [productStats, setProductStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
+  
+  // 添加日期范围状态
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return { startDate: today, endDate: today }
+  })
+
+  // 获取今天的日期范围 - 修复时区问题
+  // 使用UTC时间获取今天日期
+  const getTodayRange = () => {
+    // 使用UTC时间获取今天日期
+    const now = new Date()
+    
+    const year = now.getUTCFullYear()
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(now.getUTCDate()).padStart(2, '0')
+    const todayStr = `${year}-${month}-${day}`
+    
+    console.log('📅 获取UTC今日范围:', { 
+      todayStr, 
+      utcTime: now.toISOString()
+    })
+    
+    return { startDate: todayStr, endDate: todayStr }
+  }
+
+  // 获取UTC时区的本周日期范围
+  const getThisWeekRange = () => {
+    const now = new Date()
+    
+    const dayOfWeek = now.getUTCDay()
+    const startOfWeek = new Date(now)
+    startOfWeek.setUTCDate(now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))
+    
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setUTCDate(startOfWeek.getUTCDate() + 6)
+    
+    const startYear = startOfWeek.getUTCFullYear()
+    const startMonth = String(startOfWeek.getUTCMonth() + 1).padStart(2, '0')
+    const startDay = String(startOfWeek.getUTCDate()).padStart(2, '0')
+    
+    const endYear = endOfWeek.getUTCFullYear()
+    const endMonth = String(endOfWeek.getUTCMonth() + 1).padStart(2, '0')
+    const endDay = String(endOfWeek.getUTCDate()).padStart(2, '0')
+    
+    return {
+      startDate: `${startYear}-${startMonth}-${startDay}`,
+      endDate: `${endYear}-${endMonth}-${endDay}`
+    }
+  }
+
+  // 获取UTC时区的本月日期范围
+  const getThisMonthRange = () => {
+    const now = new Date()
+    
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+    
+    const startYear = startOfMonth.getUTCFullYear()
+    const startMonth = String(startOfMonth.getUTCMonth() + 1).padStart(2, '0')
+    const startDay = String(startOfMonth.getUTCDate()).padStart(2, '0')
+    
+    const endYear = endOfMonth.getUTCFullYear()
+    const endMonth = String(endOfMonth.getUTCMonth() + 1).padStart(2, '0')
+    const endDay = String(endOfMonth.getUTCDate()).padStart(2, '0')
+    
+    return {
+      startDate: `${startYear}-${startMonth}-${startDay}`,
+      endDate: `${endYear}-${endMonth}-${endDay}`
+    }
+  }
+
+  // 获取洛杉矶时区的今天日期
+  const getTodayRange = () => {
+    // 获取洛杉矶时区的今天日期
+    const now = new Date()
+    const losAngelesTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+    
+    const year = losAngelesTime.getFullYear()
+    const month = String(losAngelesTime.getMonth() + 1).padStart(2, '0')
+    const day = String(losAngelesTime.getDate()).padStart(2, '0')
+    const todayStr = `${year}-${month}-${day}`
+    
+    console.log('📅 获取洛杉矶时区今日范围:', { 
+      todayStr, 
+      losAngelesTime: losAngelesTime.toISOString(),
+      originalUTC: now.toISOString()
+    })
+    
+    return { startDate: todayStr, endDate: todayStr }
+  }
+
+  // 获取洛杉矶时区的本周日期范围
+  const getThisWeekRange = () => {
+    const now = new Date()
+    const losAngelesTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+    
+    const dayOfWeek = losAngelesTime.getDay()
+    const startOfWeek = new Date(losAngelesTime)
+    startOfWeek.setDate(losAngelesTime.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))
+    
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    
+    const startYear = startOfWeek.getFullYear()
+    const startMonth = String(startOfWeek.getMonth() + 1).padStart(2, '0')
+    const startDay = String(startOfWeek.getDate()).padStart(2, '0')
+    
+    const endYear = endOfWeek.getFullYear()
+    const endMonth = String(endOfWeek.getMonth() + 1).padStart(2, '0')
+    const endDay = String(endOfWeek.getDate()).padStart(2, '0')
+    
+    return {
+      startDate: `${startYear}-${startMonth}-${startDay}`,
+      endDate: `${endYear}-${endMonth}-${endDay}`
+    }
+  }
+
+  // 获取洛杉矶时区的本月日期范围
+  const getThisMonthRange = () => {
+    const now = new Date()
+    const losAngelesTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+    
+    const startOfMonth = new Date(losAngelesTime.getFullYear(), losAngelesTime.getMonth(), 1)
+    const endOfMonth = new Date(losAngelesTime.getFullYear(), losAngelesTime.getMonth() + 1, 0)
+    
+    const startYear = startOfMonth.getFullYear()
+    const startMonth = String(startOfMonth.getMonth() + 1).padStart(2, '0')
+    const startDay = String(startOfMonth.getDate()).padStart(2, '0')
+    
+    const endYear = endOfMonth.getFullYear()
+    const endMonth = String(endOfMonth.getMonth() + 1).padStart(2, '0')
+    const endDay = String(endOfMonth.getDate()).padStart(2, '0')
+    
+    return {
+      startDate: `${startYear}-${startMonth}-${startDay}`,
+      endDate: `${endYear}-${endMonth}-${endDay}`
+    }
+  }
+
+  // 处理日期范围变化
+  const handleDateRangeChange = (newDateRange) => {
+    setDateRange(newDateRange)
+    // 重新获取数据
+    fetchProductStatsWithRange(newDateRange)
+    fetchTodayProductsWithRange(newDateRange)
+  }
 
   // 调试信息
   useEffect(() => {
@@ -35,23 +186,140 @@ function ShippingPage() {
     })
   }, [user, permissions, hasPermission])
 
-  // 获取生产进度统计
+  // 获取生产进度统计和当天产品
   useEffect(() => {
-    fetchProductStats()
+    fetchProductStatsWithRange(dateRange)
+    fetchTodayProductsWithRange(dateRange)
   }, [])
 
-  const fetchProductStats = async () => {
+  const fetchProductStatsWithRange = async (range = dateRange) => {
     try {
       setStatsLoading(true)
-      const response = await fetch('/api/products/status-stats')
-      const data = await response.json()
-      setProductStats(data)
+      
+      console.log('🔍 开始获取统计数据，日期范围:', range)
+      
+      // 使用后端 status-stats API 获取统计数据
+      let url = '/api/products/status-stats'
+      const params = new URLSearchParams()
+      
+      if (range.startDate && range.endDate) {
+        params.append('startDate', range.startDate)
+        params.append('endDate', range.endDate)
+        url += `?${params.toString()}`
+      } else if (range.startDate) {
+        params.append('startDate', range.startDate)
+        url += `?${params.toString()}`
+      } else if (range.endDate) {
+        params.append('endDate', range.endDate)
+        url += `?${params.toString()}`
+      }
+      
+      console.log('📡 请求URL:', url)
+      
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const stats = await response.json()
+      
+      console.log('📊 从API获取的统计数据:', stats)
+      setProductStats(stats)
+      
     } catch (error) {
       console.error('获取生产统计失败:', error)
+      // 设置默认值避免页面崩溃
+      setProductStats({
+        total: 0,
+        todayScanned: 0,
+        byStatus: {
+          scheduled: 0,
+          '已切割': 0,
+          '已清角': 0,
+          '已入库': 0,
+          '部分出库': 0,
+          '已出库': 0,
+          '已扫描': 0
+        }
+      })
     } finally {
       setStatsLoading(false)
     }
   }
+
+  // 获取指定日期范围的产品列表和扫码数据 - 修复时区问题
+  const fetchTodayProductsWithRange = async (range = dateRange) => {
+    try {
+      setTodayLoading(true)
+      
+      console.log('🔍 获取指定范围数据，日期范围:', range)
+      
+      // 获取所有产品数据
+      let productsUrl = '/api/products'
+      const params = new URLSearchParams()
+      
+      if (range.startDate && range.endDate) {
+        params.append('startDate', range.startDate)
+        params.append('endDate', range.endDate)
+        productsUrl += `?${params.toString()}`
+      } else if (range.startDate) {
+        params.append('startDate', range.startDate)
+        productsUrl += `?${params.toString()}`
+      } else if (range.endDate) {
+        params.append('endDate', range.endDate)
+        productsUrl += `?${params.toString()}`
+      }
+      
+      console.log('📡 产品请求URL:', productsUrl)
+      
+      const allProductsResponse = await fetch(productsUrl)
+      const allProductsData = await allProductsResponse.json()
+      
+      // 获取仅扫码数据 - 添加时间参数
+      let scannedOnlyUrl = '/api/barcodes/scanned-only'
+      const scannedParams = new URLSearchParams()
+      
+      if (range.startDate && range.endDate) {
+        scannedParams.append('startDate', range.startDate)
+        scannedParams.append('endDate', range.endDate)
+        scannedOnlyUrl += `?${scannedParams.toString()}`
+      } else if (range.startDate) {
+        scannedParams.append('startDate', range.startDate)
+        scannedOnlyUrl += `?${scannedParams.toString()}`
+      } else if (range.endDate) {
+        scannedParams.append('endDate', range.endDate)
+        scannedOnlyUrl += `?${scannedParams.toString()}`
+      }
+      
+      console.log('📡 扫码数据请求URL:', scannedOnlyUrl)
+      
+      const scannedOnlyResponse = await fetch(scannedOnlyUrl)
+      const scannedOnlyData = await scannedOnlyResponse.json()
+      
+      // 移除前端时间过滤，因为后端已经处理了
+      setTodayProducts(allProductsData || [])
+      setTodayScannedOnly(scannedOnlyData || [])
+      
+      console.log('✅ 指定范围数据获取成功:', {
+        allProducts: allProductsData?.length || 0,
+        rangeProducts: allProductsData?.length || 0,
+        rangeScannedOnly: scannedOnlyData?.length || 0,
+        dateRange: range
+      })
+      
+    } catch (error) {
+      console.error('获取指定范围产品失败:', error)
+      setTodayProducts([])
+      setTodayScannedOnly([])
+    } finally {
+      setTodayLoading(false)
+    }
+  }
+
+  // 保持原有的函数名，但内部调用新的函数
+  const fetchProductStats = () => fetchProductStatsWithRange(dateRange)
+  const fetchTodayProducts = () => fetchTodayProductsWithRange(dateRange)
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -100,6 +368,14 @@ function ShippingPage() {
         setMessage(`产品状态已更新为：${newStatus}`)
         // 更新搜索结果中的产品状态
         setSearchResults(prev => 
+          prev.map(product => 
+            product.id === productId 
+              ? { ...product, status: newStatus }
+              : product
+          )
+        )
+        // 更新当天产品列表中的产品状态
+        setTodayProducts(prev => 
           prev.map(product => 
             product.id === productId 
               ? { ...product, status: newStatus }
@@ -319,7 +595,7 @@ function ShippingPage() {
 
         {/* 搜索区域 */}
         <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl mb-8 p-6 border border-white/20">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 h-5 w-5" />
               <input
@@ -341,6 +617,55 @@ function ShippingPage() {
             </button>
           </div>
           
+          {/* 时间筛选控件 */}
+          <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
+            {/* 日期范围输入 */}
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-blue-500" />
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => handleDateRangeChange({ ...dateRange, startDate: e.target.value })}
+                className="bg-white/60 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm transition-all duration-300"
+              />
+              <span className="text-gray-600">至</span>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => handleDateRangeChange({ ...dateRange, endDate: e.target.value })}
+                className="bg-white/60 border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm transition-all duration-300"
+              />
+            </div>
+            
+            {/* 快捷选择按钮 */}
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleDateRangeChange(getTodayRange())}
+                className="px-3 py-2 bg-blue-100 border border-blue-200 rounded-xl text-blue-700 hover:bg-blue-200 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+              >
+                今天
+              </button>
+              <button
+                onClick={() => handleDateRangeChange(getThisWeekRange())}
+                className="px-3 py-2 bg-blue-100 border border-blue-200 rounded-xl text-blue-700 hover:bg-blue-200 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+              >
+                本周
+              </button>
+              <button
+                onClick={() => handleDateRangeChange(getThisMonthRange())}
+                className="px-3 py-2 bg-blue-100 border border-blue-200 rounded-xl text-blue-700 hover:bg-blue-200 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+              >
+                本月
+              </button>
+              <button
+                onClick={() => handleDateRangeChange({ startDate: '', endDate: '' })}
+                className="px-3 py-2 bg-blue-100 border border-blue-200 rounded-xl text-blue-700 hover:bg-blue-200 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+              >
+                全部
+              </button>
+            </div>
+          </div>
+          
           {message && (
             <div className={`mt-4 p-3 rounded-lg ${
               message.includes('失败') || message.includes('出错') || message.includes('未找到')
@@ -351,6 +676,55 @@ function ShippingPage() {
             </div>
           )}
         </div>
+
+        {/* 当天产品列表 */}
+        {!searchTerm && (
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl mb-8 border border-white/20">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Calendar className="h-6 w-6 text-blue-600 mr-3" />
+                  <h2 className="text-xl font-bold text-gray-900">产品列表
+                  </h2>
+                </div>
+                <button
+                  onClick={fetchTodayProducts}
+                  disabled={todayLoading}
+                  className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                >
+                  {todayLoading ? '刷新中...' : '刷新数据'}
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                显示{getDateRangeDisplayText()}创建或扫描的所有产品 (产品: {todayProducts.length} 个, 扫码: {todayScannedOnly.length} 个)
+              </p>
+            </div>
+            
+            <div className="p-6">
+              {todayLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">加载中...</span>
+                </div>
+              ) : (todayProducts.length > 0 || todayScannedOnly.length > 0) ? (
+                <ProductListByStatus 
+                  products={todayProducts}
+                  scannedOnlyBarcodes={todayScannedOnly} // 传递扫码数据
+                  onDelete={() => {}} // 出货页面不允许删除
+                  onStatusUpdate={handleShipping} // 使用出货处理函数
+                  readOnly={false}
+                  showShippingActions={true} // 显示出货操作按钮
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>{getDateRangeDisplayText()}暂无产品数据</p>
+                  <p className="text-sm mt-2">当有新产品创建或扫描时，会在这里显示</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 搜索结果 */}
         {searchResults.length > 0 && (
@@ -441,11 +815,11 @@ function ShippingPage() {
         )}
 
         {/* 空状态 */}
-        {!loading && searchResults.length === 0 && !searchTerm && (
+        {!loading && searchResults.length === 0 && searchTerm && (
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500 text-lg">请输入搜索关键词查找产品</p>
-            <p className="text-gray-400 text-sm mt-2">支持搜索客户名、产品ID、样式或条码</p>
+            <p className="text-gray-500 text-lg">未找到匹配的产品</p>
+            <p className="text-gray-400 text-sm mt-2">请尝试其他搜索关键词</p>
           </div>
         )}
       </main>

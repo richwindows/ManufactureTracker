@@ -16,6 +16,9 @@ export async function POST(request) {
       errors: []
     }
     
+    // 获取当前时间作为导入时间（扫描时间）
+    const importTime = new Date().toISOString()
+    
     for (let i = 0; i < data.length; i++) {
       const row = data[i]
       
@@ -63,7 +66,8 @@ export async function POST(request) {
             p_o: row.po ? row.po.trim() : '',
             batch_no: row.batchNo.trim(),
             barcode: row.barcode ? row.barcode.trim() : '',
-            status: 'scheduled' // 默认状态为已排产
+            status: 'scheduled', // 默认状态为已排产
+            scanned_at: new Date().toISOString() // 添加扫描时间为当前导入时间
           })
         
         if (insertError) {

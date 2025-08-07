@@ -25,7 +25,7 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
 
   // 条码状态选项
   const barcodeStatusOptions = [
-    'scheduled',
+    '已排产',
     '已切割',
     '已清角', 
     '已入库',
@@ -201,11 +201,12 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
 
   const getStatusName = (status) => {
     const statusMap = {
-      'pending': '待处理',
-      'in_progress': '进行中',
-      'completed': '已完成',
-      'shipped': '已发货',
-      'scheduled': '已排产'
+      '已排产': '已排产',
+      '已切割': '已切割',
+      '已清角': '已清角',
+      '已入库': '已入库',
+      '部分出库': '部分出库',
+      '已出库': '已出库'
     }
     return statusMap[status] || status
   }
@@ -292,9 +293,6 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                   客户
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  产品ID
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   样式
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -313,7 +311,7 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                   状态
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  创建时间
+                  扫描时间
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   操作
@@ -351,13 +349,6 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {isProduct ? item.customer : '-'}
-                      </div>
-                    </td>
-
-                    {/* 产品ID */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
-                        {isProduct ? item.productId : '-'}
                       </div>
                     </td>
 
@@ -536,6 +527,17 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                       </div>
                     </td>
 
+                    {/* 扫描时间 */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Calendar className="h-4 w-4 mr-1.5 text-gray-400" />
+                        {isProduct ? 
+                          (item.scannedAt ? formatDate(item.scannedAt) : '-') : 
+                          formatDate(item.scan_time)
+                        }
+                      </div>
+                    </td>
+
                     {/* 操作 */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -564,15 +566,13 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                             </button>
                           </>
                         ) : (
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleBarcodeDelete(item.id)}
-                              className="text-red-600 hover:text-red-800 p-2 rounded-md hover:bg-red-50 transition-colors"
-                              title="删除扫码记录"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleBarcodeDelete(item.id)}
+                            className="text-red-600 hover:text-red-800 p-2 rounded-md hover:bg-red-50 transition-colors"
+                            title="删除扫码记录"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </td>

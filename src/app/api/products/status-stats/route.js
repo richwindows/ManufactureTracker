@@ -48,18 +48,9 @@ export async function GET(request) {
       .from('products')
       .select('status, scanned_at, created_at, barcode')
 
-    // 如果有时间范围参数，添加过滤条件
-    if (startDate && endDate) {
-      const startDateTime = `${startDate}T00:00:00.000Z`
-      const endDateTime = `${endDate}T23:59:59.999Z`
-      
-      productsQuery = productsQuery
-        .gte('created_at', startDateTime)
-        .lte('created_at', endDateTime)
-      
-      console.log('🔍 应用时间过滤:', { startDateTime, endDateTime })
-    }
-
+    // 如果有时间范围参数，获取所有产品数据，稍后再过滤
+    // 这样可以确保我们不会遗漏任何相关数据
+    
     const { data: products, error: productsError } = await productsQuery
 
     if (productsError) {
@@ -89,7 +80,7 @@ export async function GET(request) {
       throw productsError
     }
 
-    // 2. 获取所有扫码数据（不应用时间过滤，因为我们需要获取所有扫码记录来匹配产品）
+    // 2. 获取所有扫码数据
     const { data: allScans, error: scansError } = await supabase
       .from('barcode_scans')
       .select('id, barcode_data, last_scan_time, current_status')
@@ -120,7 +111,7 @@ export async function GET(request) {
 
     // 4. 处理产品数据，如果产品的条码在扫码表中存在，则使用扫码表的状态和时间
     const productsArray = Array.isArray(products) ? products : []
-    const processedProducts = productsArray.map(product => {
+    let processedProducts = productsArray.map(product => {
       if (product.barcode && scanMap[product.barcode]) {
         const scanData = scanMap[product.barcode]
         return {
@@ -144,33 +135,65 @@ export async function GET(request) {
       !productBarcodes.includes(scan.barcode_data)
     )
 
-    // 如果有时间范围参数，对仅扫码数据应用时间过滤
+    // 6. 如果有时间范围参数，应用时间过滤
+    let filteredProducts = processedProducts
     let filteredScannedOnlyBarcodes = scannedOnlyBarcodes
+
     if (startDate && endDate) {
       const startDateTime = new Date(`${startDate}T00:00:00.000Z`)
       const endDateTime = new Date(`${endDate}T23:59:59.999Z`)
       
+      console.log('🔍 Status-stats API 时间过滤 (UTC):', { 
+        startDate, 
+        endDate, 
+        startDateTime: startDateTime.toISOString(), 
+        endDateTime: endDateTime.toISOString() 
+      })
+      
+      // 对产品数据应用时间过滤 - 修复：包含当天创建或扫描的产品
+      filteredProducts = processedProducts.filter(product => {
+        const createdDate = new Date(product.created_at)
+        const scannedDate = product.scanned_at ? new Date(product.scanned_at) : null
+        
+        // 包含当天创建的产品或当天扫描的产品
+        const createdInRange = createdDate >= startDateTime && createdDate <= endDateTime
+        const scannedInRange = scannedDate && scannedDate >= startDateTime && scannedDate <= endDateTime
+        
+        return createdInRange || scannedInRange
+      })
+      
+      // 对仅扫码数据应用时间过滤
       filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
         const scanTime = new Date(scan.last_scan_time)
         return scanTime >= startDateTime && scanTime <= endDateTime
       })
+      
+      console.log('📊 Status-stats 时间过滤详情 (UTC):', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString(),
+        产品过滤前: processedProducts.length,
+        产品过滤后: filteredProducts.length,
+        扫码过滤前: scannedOnlyBarcodes.length,
+        扫码过滤后: filteredScannedOnlyBarcodes.length
+      })
     }
 
     console.log('📊 数据统计:', {
-      products: processedProducts.length,
+      allProducts: processedProducts.length,
+      filteredProducts: filteredProducts.length,
       scannedOnlyTotal: scannedOnlyBarcodes.length,
       scannedOnlyFiltered: filteredScannedOnlyBarcodes.length,
       totalBarcodes: productBarcodes.length
     })
 
-    // 6. 计算总数（处理后的产品数据 + 过滤后的仅扫码数据）
-    const total = processedProducts.length + filteredScannedOnlyBarcodes.length
+    // 7. 计算总数（过滤后的产品数据 + 过滤后的仅扫码数据）
+    const total = filteredProducts.length + filteredScannedOnlyBarcodes.length
 
-    // 7. 计算今日扫描统计
+    // 8. 计算今日扫描统计
     let todayScanned = 0
     if (startDate && endDate) {
       // 如果有时间范围，计算范围内有扫描记录的产品
-      todayScanned = processedProducts.filter(product => {
+      todayScanned = filteredProducts.filter(product => {
         if (!product.scanned_at) return false
         const scannedDate = new Date(product.scanned_at)
         const rangeStart = new Date(`${startDate}T00:00:00.000Z`)
@@ -178,27 +201,29 @@ export async function GET(request) {
         return scannedDate >= rangeStart && scannedDate <= rangeEnd
       }).length + filteredScannedOnlyBarcodes.length
     } else {
-      // 如果没有时间范围，计算今天的扫描
+      // 如果没有时间范围，计算今天的扫描 (UTC)
       const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      today.setUTCHours(0, 0, 0, 0)
+      const todayEnd = new Date(today)
+      todayEnd.setUTCHours(23, 59, 59, 999)
       
-      const todayProducts = processedProducts.filter(product => {
+      const todayProducts = filteredProducts.filter(product => {
         if (!product.scanned_at) return false
         const scannedDate = new Date(product.scanned_at)
-        return scannedDate >= today
+        return scannedDate >= today && scannedDate <= todayEnd
       }).length
 
       const todayScannedOnly = filteredScannedOnlyBarcodes.filter(scan => {
         const scannedDate = new Date(scan.last_scan_time)
-        return scannedDate >= today
+        return scannedDate >= today && scannedDate <= todayEnd
       }).length
 
       todayScanned = todayProducts + todayScannedOnly
     }
 
-    // 8. 按状态分组统计
-    // 统计处理后的产品数据的状态
-    const statusCounts = processedProducts.reduce((acc, product) => {
+    // 9. 按状态分组统计
+    // 统计过滤后的产品数据的状态
+    const statusCounts = filteredProducts.reduce((acc, product) => {
       const status = product.status || 'scheduled'
       acc[status] = (acc[status] || 0) + 1
       return acc

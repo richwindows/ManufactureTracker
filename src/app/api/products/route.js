@@ -1,39 +1,70 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// GET - 获取产品（支持日期范围筛选）
+// GET - 获取产品（支持日期范围筛选和搜索）
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const date = searchParams.get('date') // 保持向后兼容
+    const search = searchParams.get('search') // 添加搜索参数
     
     let query = supabase.from('products').select('*')
     
+    // 处理搜索功能
+    if (search) {
+      const searchTerm = search.trim()
+      query = query.or(`customer.ilike.%${searchTerm}%,product_id.ilike.%${searchTerm}%,style.ilike.%${searchTerm}%,barcode.ilike.%${searchTerm}%`)
+    }
+    
     if (date) {
       // 如果指定了单个日期，筛选指定日期的数据（向后兼容）
-      const startDateTime = new Date(date)
-      startDateTime.setHours(0, 0, 0, 0)
+      // 将洛杉矶时区的日期转换为UTC时间范围
+      const laStartTime = new Date(`${date}T00:00:00-08:00`) // 洛杉矶时区开始时间
+      const laEndTime = new Date(`${date}T23:59:59.999-08:00`) // 洛杉矶时区结束时间
       
-      const endDateTime = new Date(date)
-      endDateTime.setHours(23, 59, 59, 999)
+      console.log('Products API 单日期过滤 (洛杉矶->UTC):', { 
+        date, 
+        laStartTime: laStartTime.toISOString(), 
+        laEndTime: laEndTime.toISOString() 
+      })
       
-      query = query
-        .gte('created_at', startDateTime.toISOString())
-        .lte('created_at', endDateTime.toISOString())
+      // 修改：使用 OR 条件，包含创建日期或扫描日期在范围内的产品
+      query = query.or(
+        `and(created_at.gte.${laStartTime.toISOString()},created_at.lte.${laEndTime.toISOString()}),` +
+        `and(scanned_at.gte.${laStartTime.toISOString()},scanned_at.lte.${laEndTime.toISOString()})`
+      )
     } else if (startDate || endDate) {
-      // 如果指定了日期范围
-      if (startDate) {
-        const startDateTime = new Date(startDate)
-        startDateTime.setHours(0, 0, 0, 0)
-        query = query.gte('created_at', startDateTime.toISOString())
-      }
-      
-      if (endDate) {
-        const endDateTime = new Date(endDate)
-        endDateTime.setHours(23, 59, 59, 999)
-        query = query.lte('created_at', endDateTime.toISOString())
+      // 如果指定了日期范围，同样使用 OR 条件
+      // 将洛杉矶时区的日期转换为UTC时间范围
+      if (startDate && endDate) {
+        const laStartTime = new Date(`${startDate}T00:00:00-08:00`)
+        const laEndTime = new Date(`${endDate}T23:59:59.999-08:00`)
+        
+        console.log('Products API 日期范围过滤 (洛杉矶->UTC):', { 
+          startDate, 
+          endDate, 
+          laStartTime: laStartTime.toISOString(), 
+          laEndTime: laEndTime.toISOString() 
+        })
+        
+        query = query.or(
+          `and(created_at.gte.${laStartTime.toISOString()},created_at.lte.${laEndTime.toISOString()}),` +
+          `and(scanned_at.gte.${laStartTime.toISOString()},scanned_at.lte.${laEndTime.toISOString()})`
+        )
+      } else if (startDate) {
+        const laStartTime = new Date(`${startDate}T00:00:00-08:00`)
+        query = query.or(
+          `created_at.gte.${laStartTime.toISOString()},` +
+          `scanned_at.gte.${laStartTime.toISOString()}`
+        )
+      } else if (endDate) {
+        const laEndTime = new Date(`${endDate}T23:59:59.999-08:00`)
+        query = query.or(
+          `created_at.lte.${laEndTime.toISOString()},` +
+          `scanned_at.lte.${laEndTime.toISOString()}`
+        )
       }
     }
     // 如果没有指定任何日期参数，显示所有数据
@@ -43,6 +74,15 @@ export async function GET(request) {
     if (error) {
       console.error('获取产品失败:', error)
       throw error
+    }
+    
+    // 如果是搜索请求，返回特定格式
+    if (search) {
+      return NextResponse.json({
+        products: products || [],
+        total: products?.length || 0,
+        searchTerm: search
+      })
     }
     
     return NextResponse.json(products || [])
