@@ -16,6 +16,8 @@ export default function StatusStatsHeader({
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // 添加状态来记住搜索前的时间范围
+  const [previousDateRange, setPreviousDateRange] = useState(null)
 
   useEffect(() => {
     fetchStats()
@@ -28,6 +30,31 @@ export default function StatusStatsHeader({
       handleDateRangeChange(thisWeekRange)
     }
   }, [])
+
+  // 处理搜索输入变化的函数
+  const handleSearchChange = (e) => {
+    const searchValue = e.target.value
+    const previousSearchTerm = searchTerm
+    setSearchTerm(searchValue)
+    
+    // 如果从无搜索变为有搜索（开始搜索）
+    if (!previousSearchTerm.trim() && searchValue.trim()) {
+      // 保存当前的时间范围
+      if (dateRange.startDate || dateRange.endDate) {
+        setPreviousDateRange({ ...dateRange })
+        // 清除时间筛选
+        handleDateRangeChange({ startDate: '', endDate: '' })
+      }
+    }
+    // 如果从有搜索变为无搜索（清空搜索）
+    else if (previousSearchTerm.trim() && !searchValue.trim()) {
+      // 恢复之前的时间范围
+      if (previousDateRange) {
+        handleDateRangeChange(previousDateRange)
+        setPreviousDateRange(null)
+      }
+    }
+  }
 
   const fetchStats = async () => {
     try {
@@ -263,8 +290,14 @@ export default function StatusStatsHeader({
               placeholder="搜索产品（客户名、产品ID、样式、条码）..."
               className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-white/60 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 backdrop-blur-sm transition-all duration-300"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
             />
+            {/* 添加搜索提示 */}
+            {searchTerm && (dateRange.startDate || dateRange.endDate) && (
+              <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-cyan-500/20 border border-cyan-400/30 rounded-lg text-xs text-cyan-200 backdrop-blur-sm">
+                搜索时将清除时间筛选，针对所有数据搜索
+              </div>
+            )}
           </div>
           
           {/* 日期范围选择器 */}
@@ -278,6 +311,7 @@ export default function StatusStatsHeader({
                   value={dateRange.startDate}
                   onChange={(e) => handleDateRangeChange({ ...dateRange, startDate: e.target.value })}
                   className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 backdrop-blur-sm transition-all duration-300"
+                  disabled={searchTerm.trim() !== ''}
                 />
                 <span className="text-white/60">至</span>
                 <input
@@ -285,6 +319,7 @@ export default function StatusStatsHeader({
                   value={dateRange.endDate}
                   onChange={(e) => handleDateRangeChange({ ...dateRange, endDate: e.target.value })}
                   className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 backdrop-blur-sm transition-all duration-300"
+                  disabled={searchTerm.trim() !== ''}
                 />
               </div>
               
@@ -292,19 +327,28 @@ export default function StatusStatsHeader({
               <div className="flex space-x-2">
                 <button
                   onClick={() => handleDateRangeChange(getTodayRange())}
-                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+                  disabled={searchTerm.trim() !== ''}
+                  className={`px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm ${
+                    searchTerm.trim() !== '' ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   今天
                 </button>
                 <button
                   onClick={() => handleDateRangeChange(getThisWeekRange())}
-                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+                  disabled={searchTerm.trim() !== ''}
+                  className={`px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm ${
+                    searchTerm.trim() !== '' ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   本周
                 </button>
                 <button
                   onClick={() => handleDateRangeChange(getThisMonthRange())}
-                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+                  disabled={searchTerm.trim() !== ''}
+                  className={`px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm ${
+                    searchTerm.trim() !== '' ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   本月
                 </button>
@@ -318,7 +362,7 @@ export default function StatusStatsHeader({
             </div>
           </ModulePermissionGuard>
         </div>
-    
+
         {/* 视图切换 */}
         <div className="pt-4 border-t border-white/20">
           <div className="flex items-center space-x-4">
