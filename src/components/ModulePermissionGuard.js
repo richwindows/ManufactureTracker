@@ -9,8 +9,32 @@ export const MODULE_PERMISSIONS = {
   USER_MANAGEMENT: 'module.user_management',
   STATUS_STATS: 'module.status_stats',
   PRODUCT_SYNC: 'module.product_sync',
-  SEARCH_FILTER: 'module.search_filter',
-  PRODUCT_LIST: 'module.product_list'
+  // 删除 SEARCH_FILTER: 'module.search_filter',
+  PRODUCT_LIST: 'module.product_list',
+  BARCODE_EDIT: 'module.barcode_edit'
+}
+
+// 状态权限常量
+export const STATUS_PERMISSIONS = {
+  VIEW_SCHEDULED: 'status.view_scheduled',      // 查看已排产
+  VIEW_CUT: 'status.view_cut',                  // 查看已切割
+  VIEW_CLEANED: 'status.view_cleaned',          // 查看已清角
+  VIEW_WAREHOUSED: 'status.view_warehoused',    // 查看已入库
+  VIEW_PARTIAL_OUT: 'status.view_partial_out',  // 查看部分出库
+  VIEW_OUT: 'status.view_out',                  // 查看已出库
+  VIEW_SCANNED: 'status.view_scanned'           // 查看已扫描
+}
+
+// 状态权限映射
+export const STATUS_PERMISSION_MAP = {
+  'scheduled': STATUS_PERMISSIONS.VIEW_SCHEDULED,
+  '已排产': STATUS_PERMISSIONS.VIEW_SCHEDULED,
+  '已切割': STATUS_PERMISSIONS.VIEW_CUT,
+  '已清角': STATUS_PERMISSIONS.VIEW_CLEANED,
+  '已入库': STATUS_PERMISSIONS.VIEW_WAREHOUSED,
+  '部分出库': STATUS_PERMISSIONS.VIEW_PARTIAL_OUT,
+  '已出库': STATUS_PERMISSIONS.VIEW_OUT,
+  '已扫描': STATUS_PERMISSIONS.VIEW_SCANNED
 }
 
 // 模块权限描述映射
@@ -20,8 +44,20 @@ export const MODULE_DESCRIPTIONS = {
   [MODULE_PERMISSIONS.USER_MANAGEMENT]: '用户管理模块',
   [MODULE_PERMISSIONS.STATUS_STATS]: '状态统计模块',
   [MODULE_PERMISSIONS.PRODUCT_SYNC]: '产品同步模块',
-  [MODULE_PERMISSIONS.SEARCH_FILTER]: '搜索过滤模块',
-  [MODULE_PERMISSIONS.PRODUCT_LIST]: '产品列表模块'
+  // 删除 [MODULE_PERMISSIONS.SEARCH_FILTER]: '搜索过滤模块',
+  [MODULE_PERMISSIONS.PRODUCT_LIST]: '产品列表模块',
+  [MODULE_PERMISSIONS.BARCODE_EDIT]: '条码数据修改模块'
+}
+
+// 状态权限描述映射
+export const STATUS_DESCRIPTIONS = {
+  [STATUS_PERMISSIONS.VIEW_SCHEDULED]: '查看已排产状态',
+  [STATUS_PERMISSIONS.VIEW_CUT]: '查看已切割状态',
+  [STATUS_PERMISSIONS.VIEW_CLEANED]: '查看已清角状态',
+  [STATUS_PERMISSIONS.VIEW_WAREHOUSED]: '查看已入库状态',
+  [STATUS_PERMISSIONS.VIEW_PARTIAL_OUT]: '查看部分出库状态',
+  [STATUS_PERMISSIONS.VIEW_OUT]: '查看已出库状态',
+  [STATUS_PERMISSIONS.VIEW_SCANNED]: '查看已扫描状态'
 }
 
 // 默认的权限不足提示组件

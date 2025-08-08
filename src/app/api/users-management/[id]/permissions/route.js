@@ -27,11 +27,11 @@ export async function GET(request, { params }) {
       throw userError
     }
 
-    // 获取所有模块权限
+    // 获取所有模块权限和状态权限
     const { data: allPermissions, error: permError } = await supabase
       .from('permissions')
       .select('id, name, description, resource, action')
-      .like('name', 'module.%')
+      .or('name.like.module.%,name.like.status.%')
       .order('name')
 
     if (permError) {
@@ -103,25 +103,25 @@ export async function PUT(request, { params }) {
       throw userError
     }
 
-    // 获取所有模块权限的ID
-    const { data: modulePermissions, error: modulePermError } = await supabase
+    // 获取所有模块权限和状态权限的ID
+    const { data: allManagedPermissions, error: managedPermError } = await supabase
       .from('permissions')
       .select('id')
-      .like('name', 'module.%')
+      .or('name.like.module.%,name.like.status.%')
 
-    if (modulePermError) {
-      console.error('获取模块权限失败:', modulePermError)
-      throw modulePermError
+    if (managedPermError) {
+      console.error('获取管理权限失败:', managedPermError)
+      throw managedPermError
     }
 
-    const modulePermissionIds = modulePermissions.map(p => p.id)
+    const managedPermissionIds = allManagedPermissions.map(p => p.id)
 
-    // 删除该角色现有的模块权限
+    // 删除该角色现有的模块权限和状态权限
     const { error: deleteError } = await supabase
       .from('role_permissions')
       .delete()
       .eq('role', user.role)
-      .in('permission_id', modulePermissionIds)
+      .in('permission_id', managedPermissionIds)
 
     if (deleteError) {
       console.error('删除现有权限失败:', deleteError)

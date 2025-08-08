@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Trash2, Eye, Calendar, Package, X, CheckCircle, Clock, Scan, Edit3, Save, XCircle, AlertTriangle, Edit, Check } from 'lucide-react'
+import ModulePermissionGuard, { MODULE_PERMISSIONS } from '@/components/ModulePermissionGuard'
 
 export default function ProductList({ products, onDelete, onStatusUpdate, onRefresh }) {
   const [selectedProduct, setSelectedProduct] = useState(null)
@@ -399,7 +400,7 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                                 type="text"
                                 value={newBarcodeContent}
                                 onChange={(e) => setNewBarcodeContent(e.target.value)}
-                                className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                                className="px-2 py-1 border border-gray-300 rounded text-xs w-32"
                                 placeholder="输入条码内容"
                               />
                               <button
@@ -407,28 +408,30 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                                 className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50"
                                 title="保存"
                               >
-                                <Check className="h-4 w-4" />
+                                <Check className="h-3 w-3" />
                               </button>
                               <button
                                 onClick={handleBarcodeContentCancel}
                                 className="text-red-600 hover:text-red-800 p-1 rounded-md hover:bg-red-50"
                                 title="取消"
                               >
-                                <XCircle className="h-4 w-4" />
+                                <X className="h-3 w-3" />
                               </button>
                             </div>
                           ) : (
                             <div className="flex items-center space-x-2">
-                              <span className="bg-amber-100 px-2 py-1 rounded text-xs border border-amber-200 text-amber-800">
-                                {item.barcode_data}
+                              <span className="bg-gray-100 px-2 py-1 rounded text-xs border">
+                                {item.barcode_data || '无条码'}
                               </span>
-                              <button
-                                onClick={() => handleBarcodeContentEdit(item.id, item.barcode_data)}
-                                className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-50"
-                                title="编辑条码"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
+                              <ModulePermissionGuard modulePermission={MODULE_PERMISSIONS.BARCODE_EDIT}>
+                                <button
+                                  onClick={() => handleBarcodeContentEdit(item.id, item.barcode_data)}
+                                  className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-50"
+                                  title="编辑条码"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                              </ModulePermissionGuard>
                             </div>
                           )
                         )}

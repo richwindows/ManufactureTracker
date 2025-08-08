@@ -21,6 +21,8 @@ import {
   Scan,
   Hash
 } from 'lucide-react'
+import ModulePermissionGuard, { MODULE_PERMISSIONS } from '@/components/ModulePermissionGuard'
+import { useStatusFilter } from '@/hooks/useStatusFilter'
 
 export default function ProductListByStatus({ 
   products, 
@@ -40,6 +42,9 @@ export default function ProductListByStatus({
   // 添加条码内容编辑相关状态
   const [editingBarcodeContent, setEditingBarcodeContent] = useState(null)
   const [newBarcodeContent, setNewBarcodeContent] = useState('')
+
+  // 使用状态过滤 Hook
+  const { filterStatusGroups, canViewStatus } = useStatusFilter()
 
   const statusOptions = [
     '已排产',
@@ -95,7 +100,9 @@ export default function ProductListByStatus({
     return groups
   }
 
-  const statusGroups = groupByStatus()
+  // 应用状态过滤
+  const allStatusGroups = groupByStatus()
+  const statusGroups = filterStatusGroups(allStatusGroups)
 
   // 定义状态显示顺序和名称
   const statusOrder = ['scheduled', '已切割', '已清角', '已入库', '部分出库', '已出库', '已扫描']
@@ -741,7 +748,7 @@ export default function ProductListByStatus({
           type="text"
           value={newBarcodeContent}
           onChange={(e) => setNewBarcodeContent(e.target.value)}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+          className="px-2 py-1 border border-gray-300 rounded text-xs w-32"
           placeholder="输入条码内容"
         />
         <button
@@ -749,26 +756,30 @@ export default function ProductListByStatus({
           className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50"
           title="保存"
         >
-          <Check className="h-4 w-4" />
+          <Check className="h-3 w-3" />
         </button>
         <button
           onClick={handleBarcodeContentCancel}
           className="text-red-600 hover:text-red-800 p-1 rounded-md hover:bg-red-50"
           title="取消"
         >
-          <XCircle className="h-4 w-4" />
+          <X className="h-3 w-3" />
         </button>
       </div>
     ) : (
       <div className="flex items-center space-x-2">
-        <code className="text-sm bg-indigo-100 px-2 py-1 rounded font-mono text-indigo-800">{barcode.barcode_data}</code>
-        <button
-          onClick={() => handleBarcodeContentEdit(barcode.id, barcode.barcode_data)}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-50"
-          title="编辑条码"
-        >
-          <Edit className="h-3 w-3" />
-        </button>
+        <span className="bg-gray-100 px-2 py-1 rounded text-xs border">
+          {barcode.barcode_data || '无条码'}
+        </span>
+        <ModulePermissionGuard modulePermission={MODULE_PERMISSIONS.BARCODE_EDIT}>
+          <button
+            onClick={() => handleBarcodeContentEdit(barcode.id, barcode.barcode_data)}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-50"
+            title="编辑条码"
+          >
+            <Edit className="h-3 w-3" />
+          </button>
+        </ModulePermissionGuard>
       </div>
     )}
   </td>

@@ -252,114 +252,104 @@ export default function StatusStatsHeader({
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl mb-8 p-6 border border-white/20">
-      {/* 搜索和筛选框 */}
-      <ModulePermissionGuard 
-        moduleName="search_filter"
-        fallback={
-          <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-            <div className="text-center text-white/60">
-              <p>搜索功能已被管理员禁用</p>
-            </div>
+      {/* 搜索和筛选框 - 移除权限检查，始终显示 */}
+      <div className="mb-6">
+        <div className="flex flex-col lg:flex-row gap-4 mb-4">
+          {/* 搜索框 */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="搜索产品（客户名、产品ID、样式、条码）..."
+              className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-white/60 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 backdrop-blur-sm transition-all duration-300"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        }
-      >
-        <div className="mb-6">
-          <div className="flex flex-col lg:flex-row gap-4 mb-4">
-            {/* 搜索框 */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="搜索产品（客户名、产品ID、样式、条码）..."
-                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-white/60 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 backdrop-blur-sm transition-all duration-300"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            {/* 日期范围选择器 */}
-            <ModulePermissionGuard moduleName="date_filter">
-              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                {/* 日期范围输入 */}
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-emerald-400" />
-                  <input
-                    type="date"
-                    value={dateRange.startDate}
-                    onChange={(e) => handleDateRangeChange({ ...dateRange, startDate: e.target.value })}
-                    className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 backdrop-blur-sm transition-all duration-300"
-                  />
-                  <span className="text-white/60">至</span>
-                  <input
-                    type="date"
-                    value={dateRange.endDate}
-                    onChange={(e) => handleDateRangeChange({ ...dateRange, endDate: e.target.value })}
-                    className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 backdrop-blur-sm transition-all duration-300"
-                  />
-                </div>
-                
-                {/* 快捷选择按钮 */}
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleDateRangeChange(getTodayRange())}
-                    className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
-                  >
-                    今天
-                  </button>
-                  <button
-                    onClick={() => handleDateRangeChange(getThisWeekRange())}
-                    className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
-                  >
-                    本周
-                  </button>
-                  <button
-                    onClick={() => handleDateRangeChange(getThisMonthRange())}
-                    className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
-                  >
-                    本月
-                  </button>
-                  <button
-                    onClick={() => handleDateRangeChange({ startDate: '', endDate: '' })}
-                    className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
-                  >
-                    全部
-                  </button>
-                </div>
+          
+          {/* 日期范围选择器 */}
+          <ModulePermissionGuard moduleName="date_filter">
+            <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
+              {/* 日期范围输入 */}
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4 text-emerald-400" />
+                <input
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => handleDateRangeChange({ ...dateRange, startDate: e.target.value })}
+                  className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 backdrop-blur-sm transition-all duration-300"
+                />
+                <span className="text-white/60">至</span>
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => handleDateRangeChange({ ...dateRange, endDate: e.target.value })}
+                  className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 backdrop-blur-sm transition-all duration-300"
+                />
               </div>
-            </ModulePermissionGuard>
-          </div>
-
-          {/* 视图切换 */}
-          <div className="pt-4 border-t border-white/20">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-white/80 font-medium">视图模式：</span>
-              <div className="flex bg-white/10 rounded-xl p-1 backdrop-blur-sm border border-white/20">
+              
+              {/* 快捷选择按钮 */}
+              <div className="flex space-x-2">
                 <button
-                  onClick={() => setViewMode('status')}
-                  className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 ${
-                    viewMode === 'status'
-                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
-                      : 'text-white/80 hover:text-white hover:bg-white/15'
-                  }`}
+                  onClick={() => handleDateRangeChange(getTodayRange())}
+                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
                 >
-                  按状态分组
+                  今天
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 ${
-                    viewMode === 'list'
-                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
-                      : 'text-white/80 hover:text-white hover:bg-white/15'
-                  }`}
+                  onClick={() => handleDateRangeChange(getThisWeekRange())}
+                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
                 >
-                  列表视图
+                  本周
+                </button>
+                <button
+                  onClick={() => handleDateRangeChange(getThisMonthRange())}
+                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+                >
+                  本月
+                </button>
+                <button
+                  onClick={() => handleDateRangeChange({ startDate: '', endDate: '' })}
+                  className="px-3 py-2 bg-white/15 border border-white/30 rounded-xl text-white hover:bg-white/25 transition-all duration-300 backdrop-blur-sm font-medium text-sm"
+                >
+                  全部
                 </button>
               </div>
+            </div>
+          </ModulePermissionGuard>
+        </div>
+    
+        {/* 视图切换 */}
+        <div className="pt-4 border-t border-white/20">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-white/80 font-medium">视图模式：</span>
+            <div className="flex bg-white/10 rounded-xl p-1 backdrop-blur-sm border border-white/20">
+              <button
+                onClick={() => setViewMode('status')}
+                className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 ${
+                  viewMode === 'status'
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
+                    : 'text-white/80 hover:text-white hover:bg-white/15'
+                }`}
+              >
+                按状态分组
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 ${
+                  viewMode === 'list'
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
+                    : 'text-white/80 hover:text-white hover:bg-white/15'
+                }`}
+              >
+                列表视图
+              </button>
             </div>
           </div>
         </div>
-      </ModulePermissionGuard>
-
+      </div>
+      {/* 删除这行: </ModulePermissionGuard> */}
+  
       {/* 标题和刷新按钮 */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
