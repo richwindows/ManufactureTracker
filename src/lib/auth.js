@@ -104,12 +104,29 @@ export async function verifyAuth(request, requiredPermissions = []) {
 
     // 检查所需权限
     if (requiredPermissions.length > 0) {
+      // 如果是管理员，直接通过所有权限检查
+      if (user.role === 'admin') {
+        return {
+          success: true,
+          user: {
+            ...user,
+            permissions: ['admin_all_permissions']
+          },
+          session
+        }
+      }
+
       const userPermissions = permissions?.map(p => p.permission_name || p.name) || []
       const hasAllPermissions = requiredPermissions.every(perm => 
         userPermissions.includes(perm)
       )
 
       if (!hasAllPermissions) {
+        console.log('权限检查失败:', {
+          userRole: user.role,
+          userPermissions,
+          requiredPermissions
+        })
         return {
           success: false,
           error: '权限不足'
@@ -121,7 +138,7 @@ export async function verifyAuth(request, requiredPermissions = []) {
       success: true,
       user: {
         ...user,
-        permissions: permissions?.map(p => p.permission_name || p.name) || []
+        permissions: user.role === 'admin' ? ['admin_all_permissions'] : (permissions?.map(p => p.permission_name || p.name) || [])
       },
       session
     }

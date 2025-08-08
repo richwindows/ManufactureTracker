@@ -343,8 +343,8 @@ export default function FullScreenDisplay({ isCompact = false }) {
   return (
     <>
       <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex flex-col lg:flex-row">
-        {/* Left Section - Today's Count */}
-        <div className="flex-1 lg:flex-[7] flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 lg:border-r-4 border-blue-400/30 shadow-2xl h-full">
+        {/* Left Section - Today's Count - 统一蓝色背景 */}
+        <div className="flex-1 lg:flex-[7] flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 shadow-2xl h-full">
           <div 
             className="text-center p-4 lg:p-8 rounded-3xl bg-white/8 backdrop-blur-md border border-white/15 shadow-2xl max-w-4xl mx-auto cursor-pointer hover:bg-white/12 transition-all duration-300"
             onClick={handleTodayCountClick}
@@ -358,69 +358,75 @@ export default function FullScreenDisplay({ isCompact = false }) {
           </div>
         </div>
 
-        {/* Right Section - Records and Time */}
-        <div className="flex-1 lg:flex-[5] flex flex-col justify-center p-3 lg:p-6 space-y-3 lg:space-y-4 h-full">
-          {/* Best Record Section - 第二大 */}
-          <div className="relative flex flex-col items-center justify-center text-center p-4 lg:p-6 rounded-2xl bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-md border-2 border-yellow-400/50 shadow-2xl hover:shadow-yellow-400/30 transition-all duration-300 flex-[3] overflow-hidden">
-            {/* 背景光晕效果 */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-yellow-300/10 via-orange-300/10 to-red-300/10 blur-xl"></div>
+        {/* Right Section - Records and Time - 统一蓝色背景 */}
+        <div className="flex-1 lg:flex-[5] flex flex-col justify-center p-3 lg:p-6 space-y-3 lg:space-y-4 h-full bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+          {/* Best Record Section - 增大其他文字字体 */}
+          <div className="relative flex flex-col items-center justify-center text-center p-3 lg:p-4 rounded-3xl bg-gradient-to-br from-amber-500/30 via-yellow-500/30 to-orange-500/30 backdrop-blur-lg border-2 border-amber-400/60 shadow-2xl hover:shadow-amber-400/40 transition-all duration-300 flex-[4] overflow-hidden">
+            {/* 多层背景光晕效果 */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-amber-400/20 via-yellow-400/20 to-orange-400/20 blur-2xl"></div>
+            <div className="absolute inset-2 rounded-2xl bg-gradient-to-br from-yellow-300/10 via-amber-300/10 to-orange-300/10 blur-xl"></div>
             
-            <div className="relative z-10 w-full">
-              {/* 标题部分 */}
-              <div className="flex items-center justify-center mb-3 lg:mb-4">
-                <BarChart3 className="w-8 h-8 lg:w-12 lg:h-12 text-yellow-300 mr-2 lg:mr-3 drop-shadow-2xl" />
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl">
-                  🏆 Best Record
-                </h2>
+            <div className="relative z-10 w-full h-full flex flex-col justify-between py-2">
+              {/* 标题部分 - 显著增大字体 */}
+              <div className="flex items-center justify-center">
+                <div className="flex items-center bg-gradient-to-r from-amber-400/20 to-yellow-400/20 backdrop-blur-sm rounded-2xl px-4 py-3 border border-amber-300/40">
+                  <BarChart3 className="w-12 h-12 lg:w-16 lg:h-16 xl:w-20 xl:h-20 text-amber-300 mr-3 drop-shadow-lg" />
+                  <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black bg-gradient-to-r from-amber-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent drop-shadow-lg">
+                    🏆 Best Record
+                  </h2>
+                </div>
               </div>
               
-              {/* 内容区域 */}
-              <div className="space-y-3 lg:space-y-4">
-                {/* 日期部分 */}
-                <div className="flex flex-col items-center justify-center gap-1 lg:gap-2 p-2 lg:p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-yellow-300/30">
-                  <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-yellow-200 drop-shadow-lg">
-                    📅 Date:
-                  </span>
-                  <span className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-2xl bg-gradient-to-r from-white via-yellow-100 to-orange-100 bg-clip-text text-transparent">
-                    {formatDisplayDate(highestRecord.date)}
-                  </span>
-                </div>
-                
-                {/* 数字部分 - 最突出 */}
-                <div className="flex flex-col items-center justify-center gap-1 lg:gap-2 p-3 lg:p-4 rounded-xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm border-2 border-yellow-300/50 shadow-xl">
-                  <span className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-yellow-200 drop-shadow-lg">
-                    🪟 Windows/Day:
-                  </span>
-                  <span className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl transform hover:scale-105 transition-transform duration-300 leading-none">
-                    {highestRecord.count}
+              {/* 日期部分 - 显著增大字体 */}
+              <div className="flex flex-col items-center justify-center">
+                <div className="flex items-center mb-2">
+                  <span className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-amber-200 drop-shadow-lg">
+                    📅 {formatDisplayDate(highestRecord.date)}
                   </span>
                 </div>
               </div>
+              
+              {/* Windows数字部分 - 超大显眼 */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="text-center">
+                  <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-amber-200 drop-shadow-lg mb-3">
+                    🪟 Windows/Day
+                  </div>
+                  {/* 超大数字 */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 blur-2xl opacity-50 rounded-full"></div>
+                    <span className="relative text-8xl sm:text-9xl lg:text-[8rem] xl:text-[10rem] 2xl:text-[12rem] font-black bg-gradient-to-br from-yellow-200 via-amber-200 to-orange-200 bg-clip-text text-transparent drop-shadow-2xl leading-none tracking-tight transform hover:scale-110 transition-transform duration-500 cursor-pointer">
+                      {highestRecord.count}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
+            
+            {/* 装饰性边框 */}
+            <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-300/60 rounded-tl-lg"></div>
+            <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-300/60 rounded-tr-lg"></div>
+            <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-300/60 rounded-bl-lg"></div>
+            <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-300/60 rounded-br-lg"></div>
           </div>
-
-          {/* Today's Date Section - 缩小 */}
-          <div className="flex flex-col items-center justify-center text-center p-2 lg:p-3 rounded-xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300 flex-[1]">
-            <div className="flex items-center justify-center mb-1 lg:mb-2">
-              <Calendar className="w-5 h-5 lg:w-7 lg:h-7 text-emerald-400 mr-1 lg:mr-2 drop-shadow-lg" />
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
-                Today&apos;s Date
+          
+          {/* Combined Date & Time Section - 与左侧完全一致的背景风格 */}
+          <div className="text-center p-4 lg:p-6 rounded-3xl bg-white/8 backdrop-blur-md border border-white/15 shadow-2xl hover:bg-white/12 transition-all duration-300 flex-[2]">
+            <div className="flex items-center justify-center mb-3 lg:mb-4">
+              <Calendar className="w-8 h-8 lg:w-10 lg:h-10 text-emerald-400 mr-2 lg:mr-3 drop-shadow-lg" />
+              <Clock className="w-8 h-8 lg:w-10 lg:h-10 text-blue-400 mr-2 lg:mr-3 drop-shadow-lg" />
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Today&apos;s Date & Time
               </h3>
             </div>
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
+            
+            {/* 日期显示 */}
+            <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white drop-shadow-lg mb-2 lg:mb-3">
               {currentDate ? formatDate(currentDate) : '--'}
             </div>
-          </div>
-
-          {/* Current Time Section - 缩小 */}
-          <div className="flex flex-col items-center justify-center text-center p-2 lg:p-3 rounded-xl bg-white/12 backdrop-blur-md border border-white/25 shadow-xl hover:bg-white/15 transition-all duration-300 flex-[1]">
-            <div className="flex items-center justify-center mb-1 lg:mb-2">
-              <Clock className="w-5 h-5 lg:w-7 lg:h-7 text-blue-400 mr-1 lg:mr-2 drop-shadow-lg" />
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                Current Time
-              </h3>
-            </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg font-mono mb-1 lg:mb-2">
+            
+            {/* 时间显示 */}
+            <div className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-emerald-300 drop-shadow-lg font-mono mb-3 lg:mb-4">
               {currentTime ? formatTime(currentTime) : '--:--:--'}
             </div>
             
@@ -428,13 +434,13 @@ export default function FullScreenDisplay({ isCompact = false }) {
             <div className="flex items-center justify-center">
               {connectionError ? (
                 <>
-                  <WifiOff className="w-4 h-4 lg:w-5 lg:h-5 text-red-400 mr-1" />
-                  <span className="text-sm lg:text-base text-red-400 font-semibold">连接中断</span>
+                  <WifiOff className="w-6 h-6 lg:w-8 lg:h-8 text-red-400 mr-2" />
+                  <span className="text-lg lg:text-xl text-red-400 font-semibold">连接中断</span>
                 </>
               ) : (
                 <>
-                  <Wifi className="w-4 h-4 lg:w-5 lg:h-5 text-green-400 mr-1" />
-                  <span className="text-sm lg:text-base text-green-400 font-semibold">连接正常</span>
+                  <Wifi className="w-6 h-6 lg:w-8 lg:h-8 text-green-400 mr-2" />
+                  <span className="text-lg lg:text-xl text-green-400 font-semibold">连接正常</span>
                 </>
               )}
             </div>

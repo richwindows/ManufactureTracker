@@ -15,40 +15,57 @@ export async function GET(request, { params }) {
       )
     }
 
-    // 获取用户特定权限设置
-    const { data: userPermissions, error: userPermError } = await supabase
-      .from('user_permissions')
-      .select(`
-        permission_id,
-        granted,
-        permissions!inner(
-          id,
-          name,
-          description,
-          resource,
-          action
-        )
-      `)
-      .eq('user_id', parseInt(id))
+    // 获取用户信息
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', parseInt(id))
+      .single()
 
-    if (userPermError) {
-      console.error('获取用户权限失败:', userPermError)
-      throw userPermError
+    if (userError) {
+      console.error('获取用户信息失败:', userError)
+      throw userError
     }
 
+    // 获取所有模块权限
+    const { data: allPermissions, error: permError } = await supabase
+      .from('permissions')
+      .select('id, name, description, resource, action')
+      .like('name', 'module.%')
+      .order('name')
+
+    if (permError) {
+      console.error('获取权限列表失败:', permError)
+      throw permError
+    }
+
+    // 获取该角色的权限
+    const { data: rolePermissions, error: rolePermError } = await supabase
+      .from('role_permissions')
+      .select('permission_id')
+      .eq('role', user.role)
+
+    if (rolePermError) {
+      console.error('获取角色权限失败:', rolePermError)
+      throw rolePermError
+    }
+
+    const rolePermissionIds = rolePermissions.map(rp => rp.permission_id)
+
     // 格式化权限数据
-    const formattedPermissions = (userPermissions || []).map(up => ({
-      permission_id: up.permission_id,
-      granted: up.granted,
-      name: up.permissions.name,
-      description: up.permissions.description,
-      resource: up.permissions.resource,
-      action: up.permissions.action
+    const formattedPermissions = allPermissions.map(permission => ({
+      permission_id: permission.id,
+      granted: rolePermissionIds.includes(permission.id),
+      name: permission.name,
+      description: permission.description,
+      resource: permission.resource,
+      action: permission.action
     }))
 
     return NextResponse.json({
       success: true,
-      permissions: formattedPermissions
+      permissions: formattedPermissions,
+      userRole: user.role
     })
 
   } catch (error) {
@@ -74,29 +91,55 @@ export async function PUT(request, { params }) {
       )
     }
 
-    // 删除用户现有的特定权限
+    // 获取用户角色
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', parseInt(id))
+      .single()
+
+    if (userError) {
+      console.error('获取用户信息失败:', userError)
+      throw userError
+    }
+
+    // 获取所有模块权限的ID
+    const { data: modulePermissions, error: modulePermError } = await supabase
+      .from('permissions')
+      .select('id')
+      .like('name', 'module.%')
+
+    if (modulePermError) {
+      console.error('获取模块权限失败:', modulePermError)
+      throw modulePermError
+    }
+
+    const modulePermissionIds = modulePermissions.map(p => p.id)
+
+    // 删除该角色现有的模块权限
     const { error: deleteError } = await supabase
-      .from('user_permissions')
+      .from('role_permissions')
       .delete()
-      .eq('user_id', parseInt(id))
+      .eq('role', user.role)
+      .in('permission_id', modulePermissionIds)
 
     if (deleteError) {
       console.error('删除现有权限失败:', deleteError)
       throw deleteError
     }
 
-    // 插入新的权限设置
-    if (permissions && permissions.length > 0) {
-      const permissionRecords = permissions.map(perm => ({
-        user_id: parseInt(id),
+    // 插入新的权限设置（只插入granted为true的权限）
+    const grantedPermissions = permissions.filter(perm => perm.granted)
+    
+    if (grantedPermissions.length > 0) {
+      const permissionRecords = grantedPermissions.map(perm => ({
+        role: user.role,
         permission_id: perm.permission_id,
-        granted: perm.granted,
-        granted_by: authResult.user.id,
-        granted_at: new Date().toISOString()
+        created_at: new Date().toISOString()
       }))
 
       const { error: insertError } = await supabase
-        .from('user_permissions')
+        .from('role_permissions')
         .insert(permissionRecords)
 
       if (insertError) {

@@ -138,15 +138,7 @@ const LoginForm = ({ onSuccess }) => {
           </button>
         </form>
 
-        {/* Default Accounts Info */}
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">默认账户</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <div>管理员: admin / admin123</div>
-            <div>操作员: operator / operator123</div>
-            <div>查看者: viewer / viewer123</div>
-          </div>
-        </div>
+        
       </div>
     </div>
   )

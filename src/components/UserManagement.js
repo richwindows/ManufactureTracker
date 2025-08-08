@@ -7,7 +7,7 @@ import UserForm from './UserForm'
 import PermissionsModal from './PermissionsModal'
 
 function UserManagement() {
-  const { user, loading: authLoading, isAuthenticated, hasRole } = useAuth()
+  const { user, loading: authLoading, isAuthenticated, hasRole, hasPermission } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -100,7 +100,7 @@ function UserManagement() {
       username: '',
       email: '',
       fullName: '',
-      role: 'viewer',
+      role: 'viewer', // 默认角色改为 viewer
       department: '',
       phone: '',
       password: '',
@@ -217,14 +217,23 @@ function UserManagement() {
 
   // 重置密码
   const handleResetPassword = async (userId, username) => {
-    if (!confirm(`确定要重置用户 "${username}" 的密码吗？`)) {
+    const newPassword = prompt(`请为用户 "${username}" 设置新密码（至少6位）:`)
+    
+    if (!newPassword) {
+      return // 用户取消了操作
+    }
+    
+    if (newPassword.length < 6) {
+      setError('密码长度至少6位')
       return
     }
     
     try {
       const response = await fetch(`/api/users-management/${userId}/reset-password`, {
         method: 'PUT',
-        credentials: 'include'
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ newPassword })
       })
       
       if (!response.ok) {
@@ -233,7 +242,7 @@ function UserManagement() {
       }
       
       const data = await response.json()
-      setSuccess(`密码重置成功，新密码：${data.newPassword}`)
+      setSuccess(`用户 "${username}" 的密码重置成功`)
       
     } catch (err) {
       console.error('重置密码失败:', err)
@@ -265,10 +274,10 @@ function UserManagement() {
 
   // 组件挂载时获取用户列表
   useEffect(() => {
-    if (isAuthenticated && hasRole('admin')) {
+    if (isAuthenticated && hasPermission('users.read')) {
       fetchUsers()
     }
-  }, [isAuthenticated, hasRole, pagination.page, pagination.limit])
+  }, [isAuthenticated, pagination.page, pagination.limit]) // 移除 hasPermission 依赖
 
   // 如果正在加载认证状态
   if (authLoading) {
@@ -288,8 +297,8 @@ function UserManagement() {
     )
   }
 
-  // 如果不是管理员
-  if (!hasRole('admin')) {
+  // 如果没有用户管理权限
+  if (!hasPermission('users.read')) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-lg text-red-600">权限不足，只有管理员可以访问用户管理</div>
@@ -297,22 +306,28 @@ function UserManagement() {
     )
   }
 
+  const canEdit = hasPermission('users.update')
+  const canCreate = hasPermission('users.create')
+  const canDelete = hasPermission('users.delete')
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">用户管理</h1>
-        <div className="space-x-2">
-          <button
-            onClick={() => {
-              resetUserForm()
-              setEditingUser(null)
-              setShowUserForm(true)
-            }}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            添加用户
-          </button>
-        </div>
+        {canCreate && (
+          <div className="space-x-2">
+            <button
+              onClick={() => {
+                resetUserForm()
+                setEditingUser(null)
+                setShowUserForm(true)
+              }}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              添加用户
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 错误和成功消息 */}
@@ -338,14 +353,15 @@ function UserManagement() {
       <UserList 
         users={users}
         loading={loading}
-        onEditUser={handleEditUser}
-        onToggleUserStatus={handleToggleUserStatus}
-        onResetPassword={handleResetPassword}
-        onDeleteUser={handleDeleteUser}
-        onOpenPermissions={(userId) => {
+        onEditUser={canEdit ? handleEditUser : null}
+        onToggleUserStatus={canEdit ? handleToggleUserStatus : null}
+        onResetPassword={canEdit ? handleResetPassword : null}
+        onDeleteUser={canDelete ? handleDeleteUser : null}
+        onOpenPermissions={canEdit ? (userId) => {
           setSelectedUserId(userId)
           setShowPermissionsModal(true)
-        }}
+        } : null}
+        readOnly={!canEdit}
       />
 
       {/* 分页 */}
@@ -378,52 +394,56 @@ function UserManagement() {
         </div>
       )}
 
-      {/* 用户表单模态框 */}
-      <UserForm
-        show={showUserForm}
-        editingUser={editingUser}
-        userForm={userForm}
-        onFormChange={handleFormChange}
-        onSubmit={handleSaveUser}
-        onCancel={() => {
-          setShowUserForm(false)
-          setEditingUser(null)
-          resetUserForm()
-        }}
-      />
+      {/* 用户表单模态框 - 只有有创建/编辑权限的用户可以看到 */}
+      {(canCreate || canEdit) && (
+        <UserForm
+          show={showUserForm}
+          editingUser={editingUser}
+          userForm={userForm}
+          onFormChange={handleFormChange}
+          onSubmit={handleSaveUser}
+          onCancel={() => {
+            setShowUserForm(false)
+            setEditingUser(null)
+            resetUserForm()
+          }}
+        />
+      )}
 
-      {/* 权限管理模态框 */}
-      <PermissionsModal 
-        show={showPermissionsModal}
-        userId={selectedUserId}
-        onClose={() => {
-          setShowPermissionsModal(false)
-          setSelectedUserId(null)
-        }}
-        onSave={async (userId, permissions) => {
-          try {
-            const response = await fetch(`/api/users-management/${userId}/permissions`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ permissions })
-            })
-            
-            if (!response.ok) {
-              const errorData = await response.json()
-              throw new Error(errorData.error || `HTTP ${response.status}`)
-            }
-            
-            setSuccess('用户权限更新成功')
+      {/* 权限管理模态框 - 只有编辑权限的用户可以看到 */}
+      {canEdit && (
+        <PermissionsModal 
+          show={showPermissionsModal}
+          userId={selectedUserId}
+          onClose={() => {
             setShowPermissionsModal(false)
             setSelectedUserId(null)
-            
-          } catch (err) {
-            console.error('保存权限失败:', err)
-            setError(`保存权限失败: ${err.message}`)
-          }
-        }}
-      />
+          }}
+          onSave={async (userId, permissions) => {
+            try {
+              const response = await fetch(`/api/users-management/${userId}/permissions`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ permissions })
+              })
+              
+              if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || `HTTP ${response.status}`)
+              }
+              
+              setSuccess('用户权限更新成功')
+              setShowPermissionsModal(false)
+              setSelectedUserId(null)
+              
+            } catch (err) {
+              console.error('保存权限失败:', err)
+              setError(`保存权限失败: ${err.message}`)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

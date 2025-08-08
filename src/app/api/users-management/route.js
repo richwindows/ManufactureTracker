@@ -6,9 +6,9 @@ import { verifyAuth } from '@/lib/auth'
 // 获取用户列表
 export async function GET(request) {
   try {
-    // 验证管理员权限
-    const authResult = await verifyAuth(request)
-    if (!authResult.success || authResult.user.role !== 'admin') {
+    // 验证用户管理读取权限
+    const authResult = await verifyAuth(request, ['users.read'])
+    if (!authResult.success) {
       return NextResponse.json(
         { error: '权限不足' },
         { status: 403 }
@@ -29,11 +29,7 @@ export async function GET(request) {
       .select(`
         id,
         username,
-        email,
-        full_name,
         role,
-        department,
-        phone,
         is_active,
         last_login_at,
         created_at,

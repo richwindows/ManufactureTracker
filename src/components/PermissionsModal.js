@@ -10,6 +10,7 @@ function PermissionsModal({
 }) {
   const [availablePermissions, setAvailablePermissions] = useState([])
   const [userPermissions, setUserPermissions] = useState([])
+  const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -21,17 +22,21 @@ function PermissionsModal({
   const fetchPermissions = async () => {
     setLoading(true)
     try {
-      // 获取所有可用权限
+      // 获取所有可用的模块权限
       const permissionsResponse = await fetch('/api/permissions', {
         credentials: 'include'
       })
       const permissionsData = await permissionsResponse.json()
       
       if (permissionsData.success) {
-        setAvailablePermissions(permissionsData.permissions)
+        // 只显示模块权限
+        const modulePermissions = permissionsData.permissions.filter(p => 
+          p.name.startsWith('module.')
+        )
+        setAvailablePermissions(modulePermissions)
       }
 
-      // 获取用户特定权限
+      // 获取用户角色权限
       const userPermissionsResponse = await fetch(`/api/users-management/${userId}/permissions`, {
         credentials: 'include'
       })
@@ -39,6 +44,7 @@ function PermissionsModal({
       
       if (userPermissionsData.success) {
         setUserPermissions(userPermissionsData.permissions)
+        setUserRole(userPermissionsData.userRole)
       }
     } catch (error) {
       console.error('获取权限失败:', error)
@@ -49,19 +55,11 @@ function PermissionsModal({
 
   const handlePermissionChange = (permissionId, value) => {
     setUserPermissions(prev => {
-      const existing = prev.find(p => p.permission_id === permissionId)
-      if (existing) {
-        return prev.map(p => 
-          p.permission_id === permissionId 
-            ? { ...p, granted: value === 'true' }
-            : p
-        )
-      } else {
-        return [...prev, {
-          permission_id: permissionId,
-          granted: value === 'true'
-        }]
-      }
+      return prev.map(p => 
+        p.permission_id === permissionId 
+          ? { ...p, granted: value === 'true' }
+          : p
+      )
     })
   }
 
@@ -80,80 +78,56 @@ function PermissionsModal({
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border w-4/5 max-w-4xl shadow-lg rounded-md bg-white">
         <div className="mt-3">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">用户权限管理</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            用户权限管理 {userRole && `(角色: ${userRole})`}
+          </h3>
           
           {loading ? (
             <div className="text-center py-8">加载中...</div>
           ) : (
             <div className="max-h-96 overflow-y-auto">
-              {Object.entries(
-                availablePermissions.reduce((groups, permission) => {
-                  const resource = permission.resource || '其他'
-                  if (!groups[resource]) groups[resource] = []
-                  groups[resource].push(permission)
-                  return groups
-                }, {})
-              ).map(([resource, permissions]) => (
-                <div key={resource} className="mb-6">
-                  <h4 className="text-md font-semibold text-gray-800 mb-3 border-b pb-2">
-                    {resource}
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    {permissions.map(permission => {
-                      const userPerm = userPermissions.find(up => up.permission_id === permission.id)
-                      const currentValue = userPerm ? (userPerm.granted ? 'true' : 'false') : 'default'
-                      
-                      return (
-                        <div key={permission.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                          <div>
-                            <div className="font-medium">{permission.name}</div>
-                            <div className="text-sm text-gray-600">{permission.description}</div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name={`permission-${permission.id}`}
-                                value="default"
-                                checked={currentValue === 'default'}
-                                onChange={() => {
-                                  setUserPermissions(prev => 
-                                    prev.filter(p => p.permission_id !== permission.id)
-                                  )
-                                }}
-                                className="mr-1"
-                              />
-                              <span className="text-sm">默认</span>
-                            </label>
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name={`permission-${permission.id}`}
-                                value="true"
-                                checked={currentValue === 'true'}
-                                onChange={() => handlePermissionChange(permission.id, 'true')}
-                                className="mr-1"
-                              />
-                              <span className="text-sm text-green-600">允许</span>
-                            </label>
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name={`permission-${permission.id}`}
-                                value="false"
-                                checked={currentValue === 'false'}
-                                onChange={() => handlePermissionChange(permission.id, 'false')}
-                                className="mr-1"
-                              />
-                              <span className="text-sm text-red-600">拒绝</span>
-                            </label>
-                          </div>
-                        </div>
-                      )
-                    })}
+              <div className="mb-4 p-3 bg-blue-50 rounded">
+                <p className="text-sm text-blue-700">
+                  注意：修改权限将影响所有具有 <strong>{userRole}</strong> 角色的用户
+                </p>
+              </div>
+              
+              {userPermissions.map(permission => {
+                const currentValue = permission.granted ? 'true' : 'false'
+                
+                return (
+                  <div key={permission.permission_id} className="flex items-center justify-between p-3 bg-gray-50 rounded mb-3">
+                    <div>
+                      <div className="font-medium">{permission.name}</div>
+                      <div className="text-sm text-gray-600">{permission.description}</div>
+                    </div>
+                    <div className="flex space-x-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`permission-${permission.permission_id}`}
+                          value="true"
+                          checked={currentValue === 'true'}
+                          onChange={() => handlePermissionChange(permission.permission_id, 'true')}
+                          className="mr-2 text-green-600 focus:ring-green-500"
+                        />
+                        <span className="text-sm font-medium text-green-600">是</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`permission-${permission.permission_id}`}
+                          value="false"
+                          checked={currentValue === 'false'}
+                          onChange={() => handlePermissionChange(permission.permission_id, 'false')}
+                          className="mr-2 text-red-600 focus:ring-red-500"
+                        />
+                        <span className="text-sm font-medium text-red-600">否</span>
+                      </label>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
           

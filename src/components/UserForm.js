@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+
 function UserForm({ 
   show, 
   editingUser, 
@@ -8,6 +10,43 @@ function UserForm({
   onSubmit, 
   onCancel 
 }) {
+  const [roles, setRoles] = useState([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
+  const [rolesError, setRolesError] = useState('')
+
+  // 获取角色列表
+  useEffect(() => {
+    if (show) {
+      fetchRoles()
+    }
+  }, [show])
+
+  const fetchRoles = async () => {
+    setLoadingRoles(true)
+    setRolesError('')
+    try {
+      const response = await fetch('/api/roles', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setRoles(data.roles || [])
+      } else {
+        console.error('获取角色列表失败:', data.error)
+        setRolesError(data.error || '获取角色列表失败')
+      }
+    } catch (error) {
+      console.error('获取角色列表错误:', error)
+      setRolesError('网络错误，无法获取角色列表')
+    } finally {
+      setLoadingRoles(false)
+    }
+  }
+
   if (!show) return null
 
   return (
@@ -17,6 +56,20 @@ function UserForm({
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             {editingUser ? '编辑用户' : '添加用户'}
           </h3>
+          
+          {rolesError && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              <p className="text-sm">{rolesError}</p>
+              <button
+                type="button"
+                onClick={fetchRoles}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                重新获取角色列表
+              </button>
+            </div>
+          )}
+          
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">用户名 *</label>
@@ -35,20 +88,25 @@ function UserForm({
                 onChange={(e) => onFormChange('role', e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 required
+                disabled={loadingRoles || rolesError}
               >
-                <option value="viewer">查看者</option>
-                <option value="operator">操作员</option>
-                <option value="admin">管理员</option>
+                {loadingRoles ? (
+                  <option value="">加载中...</option>
+                ) : rolesError ? (
+                  <option value="">无法加载角色列表</option>
+                ) : roles.length === 0 ? (
+                  <option value="">暂无可用角色</option>
+                ) : (
+                  <>
+                    <option value="">请选择角色</option>
+                    {roles.map((role) => (
+                      <option key={role.role_code} value={role.role_code}>
+                        {role.role_name}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">部门</label>
-              <input
-                type="text"
-                value={userForm.department}
-                onChange={(e) => onFormChange('department', e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -85,6 +143,7 @@ function UserForm({
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                disabled={loadingRoles || rolesError}
               >
                 {editingUser ? '更新' : '创建'}
               </button>
