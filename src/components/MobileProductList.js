@@ -265,6 +265,28 @@ const MobileProductList = ({
     }
   }
 
+  // 获取状态对应的按钮颜色类
+  const getStatusButtonClass = (status) => {
+    switch (status) {
+      case 'scheduled':
+        return 'bg-blue-600 hover:bg-blue-700'
+      case '已切割':
+        return 'bg-yellow-600 hover:bg-yellow-700'
+      case '已清角':
+        return 'bg-orange-600 hover:bg-orange-700'
+      case '已入库':
+        return 'bg-green-600 hover:bg-green-700'
+      case '部分出库':
+        return 'bg-yellow-600 hover:bg-yellow-700'  // 改为黄色
+      case '已出库':
+        return 'bg-green-600 hover:bg-green-700'    // 改为绿色
+      case '已扫描':
+        return 'bg-blue-600 hover:bg-blue-700'
+      default:
+        return 'bg-gray-600 hover:bg-gray-700'
+    }
+  }
+
   return (
     <>
       <div className="space-y-3">
@@ -305,33 +327,83 @@ const MobileProductList = ({
                 <div className="divide-y divide-gray-100">
                   {group.products.map((product, index) => (
                     <div key={`${product.id}-${index}`} className="p-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0 space-y-2">
-                          {/* 客户名称 - 更大的字体 */}
-                          <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between space-x-3">
+                        {/* 左侧信息区域 */}
+                        <div className="flex-1 min-w-0 grid grid-cols-3 gap-4">
+                          {/* 客户名称 */}
+                          <div className="flex items-center space-x-2 min-w-0">
                             <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                            <span className="font-medium text-gray-900 text-base truncate">
+                            <span className="font-medium text-gray-900 text-sm truncate">
                               {product.customer}
                             </span>
                           </div>
                           
-                          {/* 条码 - 简化显示 */}
-                          <div className="flex items-center space-x-2">
+                          {/* 条码 */}
+                          <div className="flex items-center space-x-2 min-w-0">
                             <BarChart3 className="h-3 w-3 text-gray-400 flex-shrink-0" />
                             <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 truncate">
                               {product.barcode || '无条码'}
                             </span>
                           </div>
+
+                          {/* 当前状态 */}
+                          <div className="flex items-center space-x-2 min-w-0">
+                            {getStatusIcon(product.status || 'scheduled')}
+                            <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                              {statusNames[product.status] || product.status || '已排产'}
+                            </span>
+                          </div>
                         </div>
                         
-                        {/* 详情按钮 - 更大更明显 */}
-                        <button
-                          onClick={() => showProductDetail(product)}
-                          className="ml-3 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 flex-shrink-0 shadow-sm"
-                        >
-                          <Info className="h-4 w-4" />
-                          <span className="text-sm font-medium">详情</span>
-                        </button>
+                        {/* 右侧按钮组 */}
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          {/* 状态快捷按钮 - 对所有产品显示，包括仅扫码数据 */}
+                          <button
+                            onClick={async () => {
+                              try {
+                                console.log('Updating product to 部分出库:', product.id)
+                                await onStatusUpdate(product.id, '部分出库')
+                                console.log('Status update completed, calling refresh...')
+                                if (onRefresh) {
+                                  await onRefresh()
+                                }
+                              } catch (error) {
+                                console.error('Error updating status:', error)
+                                alert('更新状态失败')
+                              }
+                            }}
+                            className={`${getStatusButtonClass('部分出库')} text-white px-2 py-1 rounded text-xs font-medium shadow-sm whitespace-nowrap`}
+                          >
+                            部分出库
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                console.log('Updating product to 已出库:', product.id)
+                                await onStatusUpdate(product.id, '已出库')
+                                console.log('Status update completed, calling refresh...')
+                                if (onRefresh) {
+                                  await onRefresh()
+                                }
+                              } catch (error) {
+                                console.error('Error updating status:', error)
+                                alert('更新状态失败')
+                              }
+                            }}
+                            className={`${getStatusButtonClass('已出库')} text-white px-2 py-1 rounded text-xs font-medium shadow-sm whitespace-nowrap`}
+                          >
+                            已出库
+                          </button>
+                          
+                          {/* 详情按钮 */}
+                          <button
+                            onClick={() => showProductDetail(product)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center space-x-1 shadow-sm"
+                          >
+                            <Info className="h-3 w-3" />
+                            <span className="text-xs font-medium">详情</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

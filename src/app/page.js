@@ -115,6 +115,8 @@ function Home() {
   // 统一状态更新函数名
   const handleStatusUpdate = async (productId, newStatus) => {
     try {
+      console.log('Updating product status:', { productId, newStatus })
+      
       const response = await fetch(`/api/products/${productId}`, {
         method: 'PUT',
         headers: {
@@ -124,14 +126,21 @@ function Home() {
           status: newStatus
         })
       })
-
+      
+      console.log('Response status:', response.status)
+      
       if (response.ok) {
+        const result = await response.json()
+        console.log('Update successful:', result)
         fetchProducts() // 刷新产品数据
       } else {
-        console.error('Failed to update product status')
+        const errorData = await response.json()
+        console.error('Failed to update product status:', errorData)
+        alert(`更新状态失败: ${errorData.error || '未知错误'}`)
       }
     } catch (error) {
       console.error('Error updating product status:', error)
+      alert(`网络错误: ${error.message}`)
     }
   }
 
