@@ -122,11 +122,12 @@ export async function verifyAuth(request, requiredPermissions = []) {
       )
 
       if (!hasAllPermissions) {
-        console.log('权限检查失败:', {
-          userRole: user.role,
-          userPermissions,
-          requiredPermissions
-        })
+        // 删除权限检查日志输出
+        // console.log('权限检查失败:', {
+        //   userRole: user.role,
+        //   userPermissions,
+        //   requiredPermissions
+        // })
         return {
           success: false,
           error: '权限不足'

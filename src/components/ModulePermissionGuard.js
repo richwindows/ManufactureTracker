@@ -26,6 +26,7 @@ export const STATUS_PERMISSIONS = {
 }
 
 // 状态权限映射
+// 状态权限映射
 export const STATUS_PERMISSION_MAP = {
   'scheduled': STATUS_PERMISSIONS.VIEW_SCHEDULED,
   '已排产': STATUS_PERMISSIONS.VIEW_SCHEDULED,

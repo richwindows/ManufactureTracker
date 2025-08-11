@@ -34,10 +34,11 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
     '已出库'
   ]
 
+  // 删除这些不必要的代码
   useEffect(() => {
     fetchScannedOnlyBarcodes()
   }, [])
-
+  
   const fetchScannedOnlyBarcodes = async () => {
     try {
       const response = await fetch('/api/barcodes/scanned-only')
@@ -546,13 +547,14 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
                       <div className="flex items-center space-x-2">
                         {isProduct ? (
                           <>
-                            <button
+                            {/* 删除查看详情按钮 */}
+                            {/* <button
                               onClick={() => setSelectedProduct(item)}
                               className="text-blue-600 hover:text-blue-800 p-2 rounded-md hover:bg-blue-50 transition-colors"
                               title="查看详情"
                             >
                               <Eye className="h-4 w-4" />
-                            </button>
+                            </button> */}
                             <button
                               onClick={() => handleStatusEdit(item)}
                               className="text-green-600 hover:text-green-800 p-2 rounded-md hover:bg-green-50 transition-colors"
@@ -703,5 +705,4 @@ export default function ProductList({ products, onDelete, onStatusUpdate, onRefr
         </div>
       )}
     </>
-  );
-}
+  )}

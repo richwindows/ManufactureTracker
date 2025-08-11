@@ -4,14 +4,12 @@ import { supabase } from '@/lib/supabase'
 // GET - 获取产品状态统计
 export async function GET(request) {
   try {
-    console.log('🔍 获取产品状态统计...')
 
     // 获取查询参数
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
-    console.log('📅 时间范围参数:', { startDate, endDate })
 
     // 检查环境变量配置
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -140,17 +138,13 @@ export async function GET(request) {
     let filteredScannedOnlyBarcodes = scannedOnlyBarcodes
 
     if (startDate && endDate) {
-      const startDateTime = new Date(`${startDate}T00:00:00.000Z`)
-      const endDateTime = new Date(`${endDate}T23:59:59.999Z`)
+      // 统一使用太平洋时区 (PST/PDT)，与数据库时间保持一致
+      const startDateTime = new Date(`${startDate}T00:00:00-08:00`) // 太平洋时区开始时间
+      const endDateTime = new Date(`${endDate}T23:59:59.999-08:00`) // 太平洋时区结束时间
       
-      console.log('🔍 Status-stats API 时间过滤 (UTC):', { 
-        startDate, 
-        endDate, 
-        startDateTime: startDateTime.toISOString(), 
-        endDateTime: endDateTime.toISOString() 
-      })
+   
       
-      // 对产品数据应用时间过滤 - 修复：包含当天创建或扫描的产品
+      // 对产品数据应用时间过滤 - 包含当天创建或扫描的产品
       filteredProducts = processedProducts.filter(product => {
         const createdDate = new Date(product.created_at)
         const scannedDate = product.scanned_at ? new Date(product.scanned_at) : null
@@ -168,23 +162,10 @@ export async function GET(request) {
         return scanTime >= startDateTime && scanTime <= endDateTime
       })
       
-      console.log('📊 Status-stats 时间过滤详情 (UTC):', {
-        startDateTime: startDateTime.toISOString(),
-        endDateTime: endDateTime.toISOString(),
-        产品过滤前: processedProducts.length,
-        产品过滤后: filteredProducts.length,
-        扫码过滤前: scannedOnlyBarcodes.length,
-        扫码过滤后: filteredScannedOnlyBarcodes.length
-      })
+ 
     }
 
-    console.log('📊 数据统计:', {
-      allProducts: processedProducts.length,
-      filteredProducts: filteredProducts.length,
-      scannedOnlyTotal: scannedOnlyBarcodes.length,
-      scannedOnlyFiltered: filteredScannedOnlyBarcodes.length,
-      totalBarcodes: productBarcodes.length
-    })
+ 
 
     // 7. 计算总数（过滤后的产品数据 + 过滤后的仅扫码数据）
     const total = filteredProducts.length + filteredScannedOnlyBarcodes.length
@@ -196,26 +177,28 @@ export async function GET(request) {
       todayScanned = filteredProducts.filter(product => {
         if (!product.scanned_at) return false
         const scannedDate = new Date(product.scanned_at)
-        const rangeStart = new Date(`${startDate}T00:00:00.000Z`)
-        const rangeEnd = new Date(`${endDate}T23:59:59.999Z`)
+        const rangeStart = new Date(`${startDate}T00:00:00-08:00`) // 使用太平洋时区
+        const rangeEnd = new Date(`${endDate}T23:59:59.999-08:00`) // 使用太平洋时区
         return scannedDate >= rangeStart && scannedDate <= rangeEnd
       }).length + filteredScannedOnlyBarcodes.length
     } else {
-      // 如果没有时间范围，计算今天的扫描 (UTC)
+      // 如果没有时间范围，计算今天的扫描 (太平洋时区)
       const today = new Date()
-      today.setUTCHours(0, 0, 0, 0)
-      const todayEnd = new Date(today)
-      todayEnd.setUTCHours(23, 59, 59, 999)
+      // 获取太平洋时区的今天开始时间
+      const todayPST = new Date(today.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+      todayPST.setHours(0, 0, 0, 0)
+      const todayEndPST = new Date(todayPST)
+      todayEndPST.setHours(23, 59, 59, 999)
       
       const todayProducts = filteredProducts.filter(product => {
         if (!product.scanned_at) return false
         const scannedDate = new Date(product.scanned_at)
-        return scannedDate >= today && scannedDate <= todayEnd
+        return scannedDate >= todayPST && scannedDate <= todayEndPST
       }).length
 
       const todayScannedOnly = filteredScannedOnlyBarcodes.filter(scan => {
         const scannedDate = new Date(scan.last_scan_time)
-        return scannedDate >= today && scannedDate <= todayEnd
+        return scannedDate >= todayPST && scannedDate <= todayEndPST
       }).length
 
       todayScanned = todayProducts + todayScannedOnly
@@ -265,7 +248,7 @@ export async function GET(request) {
       }
     })
 
-    console.log('✅ 状态统计获取成功:', formattedStats)
+    // console.log('✅ 状态统计获取成功:', formattedStats)
     return NextResponse.json(formattedStats)
     
   } catch (error) {

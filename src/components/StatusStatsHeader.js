@@ -362,37 +362,7 @@ export default function StatusStatsHeader({
             </div>
           </ModulePermissionGuard>
         </div>
-
-        {/* 视图切换 */}
-        <div className="pt-4 border-t border-white/20">
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-white/80 font-medium">视图模式：</span>
-            <div className="flex bg-white/10 rounded-xl p-1 backdrop-blur-sm border border-white/20">
-              <button
-                onClick={() => setViewMode('status')}
-                className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 ${
-                  viewMode === 'status'
-                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/15'
-                }`}
-              >
-                按状态分组
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 ${
-                  viewMode === 'list'
-                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/15'
-                }`}
-              >
-                列表视图
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
-      {/* 删除这行: </ModulePermissionGuard> */}
   
       {/* 标题和刷新按钮 */}
       <div className="flex items-center justify-between mb-6">

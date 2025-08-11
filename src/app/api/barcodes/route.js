@@ -13,12 +13,20 @@ export async function GET(request) {
 
     switch (action) {
       case 'today-count':
-        const today = new Date().toISOString().split('T')[0];
+        // 获取洛杉矶时区的今天日期
+        const now = new Date();
+        const losAngelesTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+        
+        const year = losAngelesTime.getFullYear();
+        const month = String(losAngelesTime.getMonth() + 1).padStart(2, '0');
+        const day = String(losAngelesTime.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        
         const { count: todayCount, error: todayError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', `${today}T00:00:00Z`)
-          .lt('created_at', `${today}T23:59:59Z`);
+          .gte('created_at', `${todayStr}T00:00:00-08:00`)
+          .lt('created_at', `${todayStr}T23:59:59-08:00`);
         
         if (todayError) {
           console.error('Error fetching today count:', todayError);
@@ -27,12 +35,20 @@ export async function GET(request) {
         return NextResponse.json({ count: todayCount || 0 });
 
       case 'today-list':
-        const todayForList = new Date().toISOString().split('T')[0];
+        // 获取洛杉矶时区的今天日期
+        const nowForList = new Date();
+        const losAngelesTimeForList = new Date(nowForList.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+        
+        const yearForList = losAngelesTimeForList.getFullYear();
+        const monthForList = String(losAngelesTimeForList.getMonth() + 1).padStart(2, '0');
+        const dayForList = String(losAngelesTimeForList.getDate()).padStart(2, '0');
+        const todayStrForList = `${yearForList}-${monthForList}-${dayForList}`;
+        
         const { data: todayBarcodes, error: todayListError } = await supabase
           .from('barcode_scans')
           .select('id, barcode_data, created_at, device_port, current_status')
-          .gte('created_at', `${todayForList}T00:00:00Z`)
-          .lt('created_at', `${todayForList}T23:59:59Z`)
+          .gte('created_at', `${todayStrForList}T00:00:00-08:00`)
+          .lt('created_at', `${todayStrForList}T23:59:59-08:00`)
           .order('created_at', { ascending: false });
         
         if (todayListError) {

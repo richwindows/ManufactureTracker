@@ -10,82 +10,239 @@ export async function GET(request) {
     const date = searchParams.get('date') // 保持向后兼容
     const search = searchParams.get('search') // 添加搜索参数
     
-    let query = supabase.from('products').select('*')
+    // 1. 获取所有产品数据
+    let productsQuery = supabase.from('products').select('*')
     
-    // 处理搜索功能
-    if (search) {
-      const searchTerm = search.trim()
-      query = query.or(`customer.ilike.%${searchTerm}%,product_id.ilike.%${searchTerm}%,style.ilike.%${searchTerm}%,barcode.ilike.%${searchTerm}%`)
+    const { data: products, error: productsError } = await productsQuery
+    
+    if (productsError) {
+      console.error('获取产品失败:', productsError)
+      throw productsError
     }
-    
+
+    // 2. 获取所有扫码数据
+    const { data: allScans, error: scansError } = await supabase
+      .from('barcode_scans')
+      .select('id, barcode_data, last_scan_time, current_status')
+
+    if (scansError) {
+      console.error('获取扫码数据失败:', scansError)
+    }
+
+    // 3. 创建扫码数据的映射表，用于快速查找
+    const scanMap = {}
+    if (allScans) {
+      allScans.forEach(scan => {
+        const barcodeData = scan.barcode_data
+        
+        if (!scanMap[barcodeData]) {
+          scanMap[barcodeData] = scan
+        } else {
+          // 如果有多个扫码记录，保留最新的
+          const currentTime = new Date(scan.last_scan_time)
+          const existingTime = new Date(scanMap[barcodeData].last_scan_time)
+          
+          if (currentTime > existingTime) {
+            scanMap[barcodeData] = scan
+          }
+        }
+      })
+    }
+
+    // 4. 处理产品数据，如果产品的条码在扫码表中存在，则使用扫码表的状态和时间
+    const productsArray = Array.isArray(products) ? products : []
+    let processedProducts = productsArray.map(product => {
+      if (product.barcode && scanMap[product.barcode]) {
+        const scanData = scanMap[product.barcode]
+        return {
+          ...product,
+          status: scanData.current_status || product.status || 'scheduled',
+          scanned_at: scanData.last_scan_time || product.scanned_at
+        }
+      }
+      return {
+        ...product,
+        status: product.status || 'scheduled'
+      }
+    })
+
+    // 5. 获取仅扫码数据（没有对应产品的扫码记录）
+    const productBarcodes = productsArray
+      .filter(p => p.barcode && p.barcode.trim() !== '')
+      .map(p => p.barcode.trim())
+
+    const scannedOnlyBarcodes = Object.values(scanMap).filter(scan => 
+      !productBarcodes.includes(scan.barcode_data?.trim())
+    )
+
+    // 6. 应用时间过滤
+    let filteredProducts = processedProducts
+    let filteredScannedOnlyBarcodes = scannedOnlyBarcodes
+
     if (date) {
       // 如果指定了单个日期，筛选指定日期的数据（向后兼容）
-      // 将洛杉矶时区的日期转换为UTC时间范围
-      const laStartTime = new Date(`${date}T00:00:00-08:00`) // 洛杉矶时区开始时间
-      const laEndTime = new Date(`${date}T23:59:59.999-08:00`) // 洛杉矶时区结束时间
+      // 使用太平洋时区
+      const startTime = new Date(`${date}T00:00:00-08:00`)
+      const endTime = new Date(`${date}T23:59:59.999-08:00`)
       
-      console.log('Products API 单日期过滤 (洛杉矶->UTC):', { 
+      console.log('Products API 单日期过滤 (太平洋时区):', { 
         date, 
-        laStartTime: laStartTime.toISOString(), 
-        laEndTime: laEndTime.toISOString() 
+        startTime: startTime.toISOString(), 
+        endTime: endTime.toISOString() 
       })
       
-      // 修改：使用 OR 条件，包含创建日期或扫描日期在范围内的产品
-      query = query.or(
-        `and(created_at.gte.${laStartTime.toISOString()},created_at.lte.${laEndTime.toISOString()}),` +
-        `and(scanned_at.gte.${laStartTime.toISOString()},scanned_at.lte.${laEndTime.toISOString()})`
+      // 过滤产品数据
+      filteredProducts = processedProducts.filter(product => {
+        const createdDate = new Date(product.created_at)
+        const scannedDate = product.scanned_at ? new Date(product.scanned_at) : null
+        
+        const createdInRange = createdDate >= startTime && createdDate <= endTime
+        const scannedInRange = scannedDate && scannedDate >= startTime && scannedDate <= endTime
+        
+        return createdInRange || scannedInRange
+      })
+      
+      // 过滤仅扫码数据
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime >= startTime && scanTime <= endTime
+      })
+      
+    } else if (startDate && endDate) {
+      // 如果指定了日期范围，使用太平洋时区
+      const startTime = new Date(`${startDate}T00:00:00-08:00`)
+      const endTime = new Date(`${endDate}T23:59:59.999-08:00`)
+      
+      // console.log('Products API 日期范围过滤 (太平洋时区):', { 
+      //   startDate, 
+      //   endDate, 
+      //   startTime: startTime.toISOString(), 
+      //   endTime: endTime.toISOString() 
+      // })
+      
+      // 过滤产品数据
+      filteredProducts = processedProducts.filter(product => {
+        const createdDate = new Date(product.created_at)
+        const scannedDate = product.scanned_at ? new Date(product.scanned_at) : null
+        
+        const createdInRange = createdDate >= startTime && createdDate <= endTime
+        const scannedInRange = scannedDate && scannedDate >= startTime && scannedDate <= endTime
+        
+        return createdInRange || scannedInRange
+      })
+      
+      // 过滤仅扫码数据
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime >= startTime && scanTime <= endTime
+      })
+      
+    } else if (startDate) {
+      const startTime = new Date(`${startDate}T00:00:00-08:00`)
+      
+      filteredProducts = processedProducts.filter(product => {
+        const createdDate = new Date(product.created_at)
+        const scannedDate = product.scanned_at ? new Date(product.scanned_at) : null
+        
+        return createdDate >= startTime || (scannedDate && scannedDate >= startTime)
+      })
+      
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime >= startTime
+      })
+      
+    } else if (endDate) {
+      const endTime = new Date(`${endDate}T23:59:59.999-08:00`)
+      
+      filteredProducts = processedProducts.filter(product => {
+        const createdDate = new Date(product.created_at)
+        const scannedDate = product.scanned_at ? new Date(product.scanned_at) : null
+        
+        return createdDate <= endTime || (scannedDate && scannedDate <= endTime)
+      })
+      
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime <= endTime
+      })
+    }
+
+    // 7. 处理搜索功能
+    if (search) {
+      const searchTerm = search.trim().toLowerCase()
+      
+      // 搜索产品数据
+      filteredProducts = filteredProducts.filter(product =>
+        product.customer?.toLowerCase().includes(searchTerm) ||
+        product.product_id?.toLowerCase().includes(searchTerm) ||
+        product.style?.toLowerCase().includes(searchTerm) ||
+        product.barcode?.toLowerCase().includes(searchTerm)
       )
-    } else if (startDate || endDate) {
-      // 如果指定了日期范围，同样使用 OR 条件
-      // 将洛杉矶时区的日期转换为UTC时间范围
-      if (startDate && endDate) {
-        const laStartTime = new Date(`${startDate}T00:00:00-08:00`)
-        const laEndTime = new Date(`${endDate}T23:59:59.999-08:00`)
-        
-        console.log('Products API 日期范围过滤 (洛杉矶->UTC):', { 
-          startDate, 
-          endDate, 
-          laStartTime: laStartTime.toISOString(), 
-          laEndTime: laEndTime.toISOString() 
-        })
-        
-        query = query.or(
-          `and(created_at.gte.${laStartTime.toISOString()},created_at.lte.${laEndTime.toISOString()}),` +
-          `and(scanned_at.gte.${laStartTime.toISOString()},scanned_at.lte.${laEndTime.toISOString()})`
-        )
-      } else if (startDate) {
-        const laStartTime = new Date(`${startDate}T00:00:00-08:00`)
-        query = query.or(
-          `created_at.gte.${laStartTime.toISOString()},` +
-          `scanned_at.gte.${laStartTime.toISOString()}`
-        )
-      } else if (endDate) {
-        const laEndTime = new Date(`${endDate}T23:59:59.999-08:00`)
-        query = query.or(
-          `created_at.lte.${laEndTime.toISOString()},` +
-          `scanned_at.lte.${laEndTime.toISOString()}`
-        )
-      }
+      
+      // 搜索仅扫码数据
+      filteredScannedOnlyBarcodes = filteredScannedOnlyBarcodes.filter(scan =>
+        scan.barcode_data?.toLowerCase().includes(searchTerm)
+      )
     }
-    // 如果没有指定任何日期参数，显示所有数据
+
+    // 8. 将仅扫码数据转换为产品格式
+    const scannedOnlyAsProducts = filteredScannedOnlyBarcodes.map(scan => ({
+      id: `scan_${scan.id}`,
+      customer: '仅扫码',
+      product_id: scan.barcode_data,
+      style: '',
+      size: '',
+      frame: '',
+      glass: '',
+      grid: '',
+      p_o: '',
+      batch_no: '',
+      barcode: scan.barcode_data,
+      status: scan.current_status || '已扫描',
+      created_at: scan.last_scan_time,
+      scanned_at: scan.last_scan_time,
+      updated_at: scan.last_scan_time,
+      isScannedOnly: true // 标记为仅扫码数据
+    }))
+
+    // 9. 合并产品数据和仅扫码数据，避免重复
+    // 创建产品条码集合，用于去重（包括空字符串检查）
+    const filteredProductBarcodes = new Set(
+      filteredProducts
+        .map(p => p.barcode?.trim())
+        .filter(barcode => barcode && barcode !== '')
+    )
     
-    const { data: products, error } = await query.order('created_at', { ascending: false })
+    // 过滤掉与产品条码重复的仅扫码数据
+    const uniqueScannedOnlyAsProducts = scannedOnlyAsProducts.filter(scan => 
+      !filteredProductBarcodes.has(scan.barcode?.trim())
+    )
     
-    if (error) {
-      console.error('获取产品失败:', error)
-      throw error
-    }
+    // 合并去重后的数据
+    const allResults = [...filteredProducts, ...uniqueScannedOnlyAsProducts]
     
+    // 按创建时间排序
+    allResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+    // console.log('Products API 数据统计:', {
+    //   原始产品: productsArray.length,
+    //   过滤后产品: filteredProducts.length,
+    //   仅扫码数据: filteredScannedOnlyBarcodes.length,
+    //   去重后仅扫码数据: uniqueScannedOnlyAsProducts.length,
+    //   总结果: allResults.length
+    // })
+
     // 如果是搜索请求，返回特定格式
     if (search) {
       return NextResponse.json({
-        products: products || [],
-        total: products?.length || 0,
+        products: allResults,
+        total: allResults.length,
         searchTerm: search
       })
     }
     
-    return NextResponse.json(products || [])
+    return NextResponse.json(allResults)
   } catch (error) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ error: '获取产品失败' }, { status: 500 })

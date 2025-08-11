@@ -50,10 +50,23 @@ export default function FullScreenDisplay({ isCompact = false }) {
     }
   }
 
-  // Handle today count click
+  // 移除不需要的API调用
+  // const fetchTodayCount = async () => {
+  //   // 已移除
+  // }
+
+  // const fetchTodayBarcodes = async () => {
+  //   // 已移除
+  // }
+
+  // const fetchHighestRecord = async () => {
+  //   // 已移除
+  // }
+
+  // Handle today count click - 移除API调用
   const handleTodayCountClick = () => {
     setShowTodayModal(true)
-    fetchTodayBarcodes()
+    // fetchTodayBarcodes() // 移除这行
   }
 
   // Format date time for display
@@ -115,17 +128,17 @@ export default function FullScreenDisplay({ isCompact = false }) {
   }, [])
 
   // Fetch data on component mount and every 30 seconds
-  useEffect(() => {
-    fetchTodayCount()
-    fetchHighestRecord()
-
-    const dataTimer = setInterval(() => {
-      fetchTodayCount()
-      fetchHighestRecord()
-    }, 30000)
-
-    return () => clearInterval(dataTimer)
-  }, [])
+  // useEffect(() => {
+  //   fetchTodayCount()
+  //   fetchHighestRecord()
+  //
+  //   const dataTimer = setInterval(() => {
+  //     fetchTodayCount()
+  //     fetchHighestRecord()
+  //   }, 30000)
+  //
+  //   return () => clearInterval(dataTimer)
+  // }, [])
 
   // Handle keyboard events for toggling visibility (only in full screen mode)
   useEffect(() => {
@@ -189,13 +202,14 @@ export default function FullScreenDisplay({ isCompact = false }) {
             {/* 今日总数 */}
             <div 
               className="flex flex-col items-center justify-center bg-white/8 backdrop-blur-md border border-white/15 shadow-xl rounded-2xl p-4 cursor-pointer hover:bg-white/12 transition-all duration-300"
-              onClick={handleTodayCountClick}
+              // onClick={handleTodayCountClick} // 移除点击功能
             >
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-red-400 via-pink-500 to-rose-400 bg-clip-text text-transparent mb-2">
                 今日总数
               </h2>
               <div className="text-6xl md:text-8xl lg:text-9xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
-                {todayCount}
+                {/* {todayCount} */}
+                --
               </div>
             </div>
 

@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import ProductList from '@/components/ProductList'
 import ProductListByStatus from '@/components/ProductListByStatus'
+import MobileProductList from '@/components/MobileProductList'
 import BulkImport from '@/components/BulkImport'
 import UserManagement from '@/components/UserManagement'
 import StatusStatsHeader from '@/components/StatusStatsHeader'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ModulePermissionGuard, { MODULE_PERMISSIONS } from '@/components/ModulePermissionGuard'
-import { Package, Upload, Users, LogOut, Search } from 'lucide-react'
+import { Package, Upload, Users, LogOut, Search, RefreshCw } from 'lucide-react'
 
 function Home() {
   const { user, logout } = useAuth()
@@ -37,7 +37,6 @@ function Home() {
   const [dateRange, setDateRange] = useState(getThisWeekRange()) // 设置默认值为本周
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [showUserManagement, setShowUserManagement] = useState(false)
-  const [viewMode, setViewMode] = useState('status') // 'list' 或 'status' - 默认按状态分组
 
   useEffect(() => {
     fetchProducts()
@@ -106,8 +105,15 @@ function Home() {
     }
   }
 
-  // 处理产品状态更新
-  const handleProductStatusUpdate = async (productId, newStatus) => {
+  // 添加刷新函数
+  const handleRefresh = () => {
+    setLoading(true)
+    fetchProducts()
+    fetchScannedOnlyBarcodes()
+  }
+
+  // 统一状态更新函数名
+  const handleStatusUpdate = async (productId, newStatus) => {
     try {
       const response = await fetch(`/api/products/${productId}`, {
         method: 'PUT',
@@ -246,12 +252,10 @@ function Home() {
                 dateRange={dateRange}
                 handleDateRangeChange={handleDateRangeChange}
                 products={filteredProducts}
-                viewMode={viewMode}
-                setViewMode={setViewMode}
               />
             </ModulePermissionGuard>
 
-            {/* 产品列表 */}
+            {/* 产品列表 - 只显示状态分组视图 */}
             <ModulePermissionGuard 
               modulePermission={MODULE_PERMISSIONS.PRODUCT_LIST}
               fallback={
@@ -271,18 +275,20 @@ function Home() {
                 </div>
               ) : (
                 <div className="bg-white rounded-lg shadow">
-                  {viewMode === 'status' ? (
+                  {/* 根据用户角色条件渲染不同的组件 */}
+                  {user?.role === 'shipping_receiving' ? (
+                    <MobileProductList 
+                      products={filteredProducts}
+                      onStatusUpdate={handleStatusUpdate}
+                      onRefresh={handleRefresh}
+                    />
+                  ) : (
                     <ProductListByStatus 
                       products={filteredProducts} 
                       scannedOnlyBarcodes={filteredScannedOnlyBarcodes}
                       onDelete={handleProductDelete}
-                      onStatusUpdate={handleProductStatusUpdate}
-                    />
-                  ) : (
-                    <ProductList 
-                      products={filteredProducts} 
-                      onDelete={handleProductDelete}
-                      onStatusUpdate={handleProductStatusUpdate}
+                      onStatusUpdate={handleStatusUpdate}
+                      onRefresh={handleRefresh}
                     />
                   )}
                 </div>
