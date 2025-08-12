@@ -18,6 +18,8 @@ export default function StatusStatsHeader({
   const [error, setError] = useState(null)
   // 添加状态来记住搜索前的时间范围
   const [previousDateRange, setPreviousDateRange] = useState(null)
+  // 添加本地搜索输入状态
+  const [searchInput, setSearchInput] = useState('')
 
   useEffect(() => {
     fetchStats()
@@ -48,6 +50,50 @@ export default function StatusStatsHeader({
     }
     // 如果从有搜索变为无搜索（清空搜索）
     else if (previousSearchTerm.trim() && !searchValue.trim()) {
+      // 恢复之前的时间范围
+      if (previousDateRange) {
+        handleDateRangeChange(previousDateRange)
+        setPreviousDateRange(null)
+      }
+    }
+  }
+
+  // 修改搜索处理函数
+  const handleSearchSubmit = () => {
+    const previousSearchTerm = searchTerm
+    setSearchTerm(searchInput)
+    
+    // 如果从无搜索变为有搜索（开始搜索）
+    if (!previousSearchTerm.trim() && searchInput.trim()) {
+      // 保存当前的时间范围
+      if (dateRange.startDate || dateRange.endDate) {
+        setPreviousDateRange({ ...dateRange })
+        // 清除时间筛选
+        handleDateRangeChange({ startDate: '', endDate: '' })
+      }
+    }
+    // 如果从有搜索变为无搜索（清空搜索）
+    else if (previousSearchTerm.trim() && !searchInput.trim()) {
+      // 恢复之前的时间范围
+      if (previousDateRange) {
+        handleDateRangeChange(previousDateRange)
+        setPreviousDateRange(null)
+      }
+    }
+  }
+
+  // 处理回车键搜索
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit()
+    }
+  }
+
+  // 清空搜索
+  const handleClearSearch = () => {
+    setSearchInput('')
+    if (searchTerm.trim()) {
+      setSearchTerm('')
       // 恢复之前的时间范围
       if (previousDateRange) {
         handleDateRangeChange(previousDateRange)
@@ -288,10 +334,30 @@ export default function StatusStatsHeader({
             <input
               type="text"
               placeholder="搜索产品（客户名、产品ID、样式、条码）..."
-              className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-white/60 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 backdrop-blur-sm transition-all duration-300"
-              value={searchTerm}
-              onChange={handleSearchChange}
+              className="w-full pl-10 pr-24 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-white/60 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 backdrop-blur-sm transition-all duration-300"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleKeyPress}
             />
+            {/* 搜索按钮和清空按钮 */}
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="px-2 py-1 text-xs bg-gray-500/20 hover:bg-gray-500/30 text-white rounded-lg transition-colors"
+                  title="清空搜索"
+                >
+                  清空
+                </button>
+              )}
+              <button
+                onClick={handleSearchSubmit}
+                className="px-3 py-1 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 rounded-lg transition-colors"
+                title="搜索 (Enter)"
+              >
+                搜索
+              </button>
+            </div>
             {/* 添加搜索提示 */}
             {searchTerm && (dateRange.startDate || dateRange.endDate) && (
               <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-cyan-500/20 border border-cyan-400/30 rounded-lg text-xs text-cyan-200 backdrop-blur-sm">
