@@ -64,9 +64,23 @@ export default function FullScreenDisplay({ isCompact = false }) {
   // }
 
   // Handle today count click - 移除API调用
+  // 恢复数据获取的 useEffect
+  useEffect(() => {
+    fetchTodayCount()
+    fetchHighestRecord()
+  
+    const dataTimer = setInterval(() => {
+      fetchTodayCount()
+      fetchHighestRecord()
+    }, 30000)
+  
+    return () => clearInterval(dataTimer)
+  }, [])
+  
+  // 恢复点击事件中的数据获取
   const handleTodayCountClick = () => {
     setShowTodayModal(true)
-    // fetchTodayBarcodes() // 移除这行
+    fetchTodayBarcodes() // 恢复这行
   }
 
   // Format date time for display
@@ -208,8 +222,7 @@ export default function FullScreenDisplay({ isCompact = false }) {
                 今日总数
               </h2>
               <div className="text-6xl md:text-8xl lg:text-9xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
-                {/* {todayCount} */}
-                --
+                {todayCount}
               </div>
             </div>
 
