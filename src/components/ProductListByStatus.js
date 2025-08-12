@@ -224,12 +224,12 @@ const ProductListByStatus = ({
     if (!confirm('确定要删除这个产品吗？')) {
       return
     }
-
+  
     try {
-      const response = await fetch(`/api/products?id=${productId}`, {
+      const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
       })
-
+  
       if (response.ok) {
         // 显示成功提示
         alert('产品删除成功')

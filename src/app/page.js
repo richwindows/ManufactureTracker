@@ -132,15 +132,20 @@ function Home() {
       if (response.ok) {
         const result = await response.json()
         console.log('Update successful:', result)
+        
+        // 添加成功提示
+        alert(`✅ 状态更新成功！\n产品已更新为：${newStatus}`)
+        
         fetchProducts() // 刷新产品数据
+        fetchScannedOnlyBarcodes() // 同时刷新仅扫码数据
       } else {
         const errorData = await response.json()
         console.error('Failed to update product status:', errorData)
-        alert(`更新状态失败: ${errorData.error || '未知错误'}`)
+        alert(`❌ 更新状态失败: ${errorData.error || '未知错误'}`)
       }
     } catch (error) {
       console.error('Error updating product status:', error)
-      alert(`网络错误: ${error.message}`)
+      alert(`❌ 网络错误: ${error.message}`)
     }
   }
 
