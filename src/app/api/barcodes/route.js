@@ -22,11 +22,13 @@ export async function GET(request) {
         const day = String(losAngelesTime.getDate()).padStart(2, '0');
         const todayStr = `${year}-${month}-${day}`;
         
+        // 修改查询条件：只获取已入库的数据 (status_4_stored = true)
         const { count: todayCount, error: todayError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', `${todayStr}T00:00:00-08:00`)
-          .lt('created_at', `${todayStr}T23:59:59-08:00`);
+          .lt('created_at', `${todayStr}T23:59:59-08:00`)
+          .eq('status_4_stored', true);
         
         if (todayError) {
           console.error('Error fetching today count:', todayError);
@@ -69,10 +71,11 @@ export async function GET(request) {
 
       case 'highest-record':
         try {
-          // 手动查询所有记录并按日期分组
+          // 修改查询：只获取已入库的记录 (status_4_stored = true)
           const { data: allBarcodes, error: fallbackError } = await supabase
             .from('barcode_scans')
-            .select('created_at');
+            .select('created_at')
+            .eq('status_4_stored', true);
           
           if (fallbackError) {
             console.error('Fallback query failed:', fallbackError);
