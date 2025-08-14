@@ -114,8 +114,10 @@ export async function GET(request) {
           // Group by date and count
           const dateGroups = {};
           allBarcodes.forEach(barcode => {
-            // 使用 status_4_time 而不是 created_at
-            const date = new Date(barcode.status_4_time).toISOString().split('T')[0];
+            // 使用洛杉矶时区处理日期
+            const date = new Date(barcode.status_4_time).toLocaleDateString('en-CA', {
+              timeZone: 'America/Los_Angeles'
+            });
             dateGroups[date] = (dateGroups[date] || 0) + 1;
           });
           
@@ -141,11 +143,17 @@ export async function GET(request) {
         if (!date) {
           return NextResponse.json({ error: 'Date parameter required' }, { status: 400 });
         }
+        
+        // 计算洛杉矶时区的日期范围
+        const startOfDay = `${date}T00:00:00`;
+        const endOfDay = `${date}T23:59:59.999`;
+        
         const { count: dateCount, error: dateError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', `${date}T00:00:00Z`)
-          .lt('created_at', `${date}T23:59:59Z`);
+          .gte('status_4_time', startOfDay)
+          .lte('status_4_time', endOfDay)
+          .eq('status_4_stored', true); // 只统计已入库的记录
         
         if (dateError) {
           console.error('Error fetching date count:', dateError);
@@ -160,8 +168,9 @@ export async function GET(request) {
         const { count: rangeCount, error: rangeError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', `${startDate}T00:00:00Z`)
-          .lt('created_at', `${endDate}T23:59:59Z`);
+          .gte('status_4_time', `${startDate}T00:00:00`)
+          .lte('status_4_time', `${endDate}T23:59:59.999`)
+          .eq('status_4_stored', true); // 只统计已入库的记录
         
         if (rangeError) {
           console.error('Error fetching range count:', rangeError);
