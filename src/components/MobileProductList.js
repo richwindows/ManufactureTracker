@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   User,
-  BarChart3
+  BarChart3,
+  PackageCheck // 新增图标
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useStatusFilter } from '@/hooks/useStatusFilter'
@@ -53,132 +54,140 @@ const ProductDetailModal = ({ product, isOpen, onClose, onStatusUpdate }) => {
     })
   }
 
+  const statusOptions = [
+    'scheduled',
+    '已切割',
+    '已清角', 
+    '已入库',
+    '部分出库',
+    '已出库',
+    '已扫描'
+  ]
+
+  const statusNames = {
+    'scheduled': '已排产',
+    '已切割': '已切割',
+    '已清角': '已清角',
+    '已入库': '已入库',
+    '部分出库': '部分出库',
+    '已出库': '已出库',
+    '已扫描': '已扫描'
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">产品详情</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">产品详情</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         
-        <div className="p-4 space-y-4">
+        <div className="p-6 space-y-4">
           {/* 基本信息 */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <User className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-500">客户:</span>
-              <span className="font-medium">{product.customer}</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">客户</label>
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-900">{product.customer}</span>
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-500">条码:</span>
-              <span className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                {product.barcode || '无条码'}
-              </span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">条码</label>
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">
+                  {product.barcode || '无条码'}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* 详细信息 - 现在显示在弹窗中 */}
-          <div className="border-t pt-4 space-y-3">
-            <h4 className="font-medium text-gray-900">产品规格</h4>
-            
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">样式:</span>
-                <span className="font-medium">{product.style || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">尺寸:</span>
-                <span className="font-medium">{product.size || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">边框:</span>
-                <span className="font-medium">{product.frame || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">玻璃:</span>
-                <span className="font-medium">{product.glass || '-'}</span>
-              </div>
+          {/* 详细规格 */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-1">产品规格</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-gray-500">样式:</span> <span className="text-gray-900">{product.style || '未知'}</span></div>
+              <div><span className="text-gray-500">尺寸:</span> <span className="text-gray-900">{product.size || '未知'}</span></div>
+              <div><span className="text-gray-500">厚度:</span> <span className="text-gray-900">{product.thickness || '未知'}</span></div>
+              <div><span className="text-gray-500">边型:</span> <span className="text-gray-900">{product.edge_type || '未知'}</span></div>
+              <div><span className="text-gray-500">数量:</span> <span className="text-gray-900">{product.quantity || '未知'}</span></div>
+              <div><span className="text-gray-500">单位:</span> <span className="text-gray-900">{product.unit || '未知'}</span></div>
             </div>
           </div>
 
           {/* 状态编辑 */}
-          <div className="border-t pt-4">
-            <h4 className="font-medium text-gray-900 mb-3">状态管理</h4>
-            
-            {editingStatus ? (
-              <div className="space-y-3">
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="scheduled">已排产</option>
-                  <option value="已切割">已切割</option>
-                  <option value="已清角">已清角</option>
-                  <option value="已入库">已入库</option>
-                  <option value="部分出库">部分出库</option>
-                  <option value="已出库">已出库</option>
-                </select>
-                <div className="flex space-x-2">
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-1">状态管理</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">当前状态:</span>
+              {editingStatus ? (
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {statusOptions.map(status => (
+                      <option key={status} value={status}>
+                        {statusNames[status] || status}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={handleStatusSave}
-                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center justify-center space-x-2"
+                    className="text-green-600 hover:text-green-700"
                   >
                     <Check className="h-4 w-4" />
-                    <span>保存</span>
                   </button>
                   <button
-                    onClick={() => setEditingStatus(false)}
-                    className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center justify-center space-x-2"
+                    onClick={() => {
+                      setEditingStatus(false)
+                      setNewStatus(product.status || '已排产')
+                    }}
+                    className="text-red-600 hover:text-red-700"
                   >
                     <X className="h-4 w-4" />
-                    <span>取消</span>
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">当前状态:</span>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-                    {product.status === 'scheduled' ? '已排产' : product.status}
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-900">
+                    {statusNames[product.status] || product.status || '已排产'}
                   </span>
+                  <button
+                    onClick={() => setEditingStatus(true)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setEditingStatus(true)}
-                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center space-x-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>编辑状态</span>
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* 时间信息 */}
-          {product.scanned_at && (
-            <div className="border-t pt-4">
-              <div className="text-sm text-gray-500">
-                扫描时间: {formatDate(product.scanned_at)}
-              </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-1">时间信息</h3>
+            <div className="text-sm space-y-1">
+              <div><span className="text-gray-500">创建时间:</span> <span className="text-gray-900">{formatDate(product.created_at)}</span></div>
+              <div><span className="text-gray-500">更新时间:</span> <span className="text-gray-900">{formatDate(product.updated_at)}</span></div>
+              {product.scanned_at && (
+                <div><span className="text-gray-500">扫描时间:</span> <span className="text-gray-900">{formatDate(product.scanned_at)}</span></div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// 移动端产品列表组件
 const MobileProductList = ({ 
   products = [], 
   onStatusUpdate, 
@@ -187,9 +196,102 @@ const MobileProductList = ({
   const [expandedGroups, setExpandedGroups] = useState({})
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [batchUpdating, setBatchUpdating] = useState(false)
   
   // 使用状态过滤 Hook
   const { filterStatusGroups } = useStatusFilter()
+
+  // 批量入库函数
+  const handleBatchStorage = async (customer, productsInGroup) => {
+    if (!customer) {
+      alert('无法获取客户信息')
+      return
+    }
+
+    const confirmMessage = `确定要将客户 "${customer}" 的 ${productsInGroup.length} 个产品全部入库吗？`
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    setBatchUpdating(true)
+    try {
+      const productIds = productsInGroup.map(p => p.id)
+      
+      const response = await fetch('/api/products/batch-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productIds: productIds,
+          status: '已入库',
+          customer: customer
+        })
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        alert(`✅ 批量入库成功！\n${result.message}`)
+        if (onRefresh) {
+          await onRefresh()
+        }
+      } else {
+        throw new Error(result.error || '批量入库失败')
+      }
+    } catch (error) {
+      console.error('批量入库错误:', error)
+      alert(`❌ 批量入库失败: ${error.message}`)
+    } finally {
+      setBatchUpdating(false)
+    }
+  }
+
+  // 批量出库函数
+  const handleBatchShipment = async (customer, productsInGroup) => {
+    if (!customer) {
+      alert('无法获取客户信息')
+      return
+    }
+
+    const confirmMessage = `确定要将客户 "${customer}" 的 ${productsInGroup.length} 个产品全部出库吗？`
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    setBatchUpdating(true)
+    try {
+      const productIds = productsInGroup.map(p => p.id)
+      
+      const response = await fetch('/api/products/batch-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productIds: productIds,
+          status: '已出库',
+          customer: customer
+        })
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        alert(`✅ 批量出库成功！\n${result.message}`)
+        if (onRefresh) {
+          await onRefresh()
+        }
+      } else {
+        throw new Error(result.error || '批量出库失败')
+      }
+    } catch (error) {
+      console.error('批量出库错误:', error)
+      alert(`❌ 批量出库失败: ${error.message}`)
+    } finally {
+      setBatchUpdating(false)
+    }
+  }
 
   // 切换组展开状态
   const toggleGroupExpansion = (status) => {
@@ -225,6 +327,19 @@ const MobileProductList = ({
       groups[status].products.push(product)
     })
     return groups
+  }
+
+  // 按客户分组产品
+  const groupByCustomer = (products) => {
+    const customerGroups = {}
+    products.forEach(product => {
+      const customer = product.customer || '未知客户'
+      if (!customerGroups[customer]) {
+        customerGroups[customer] = []
+      }
+      customerGroups[customer].push(product)
+    })
+    return customerGroups
   }
 
   // 应用状态过滤 - 只显示有权限的状态
@@ -277,9 +392,9 @@ const MobileProductList = ({
       case '已入库':
         return 'bg-green-600 hover:bg-green-700'
       case '部分出库':
-        return 'bg-yellow-600 hover:bg-yellow-700'  // 改为黄色
+        return 'bg-yellow-600 hover:bg-yellow-700'
       case '已出库':
-        return 'bg-green-600 hover:bg-green-700'    // 改为绿色
+        return 'bg-green-600 hover:bg-green-700'
       case '已扫描':
         return 'bg-blue-600 hover:bg-blue-700'
       default:
@@ -291,12 +406,13 @@ const MobileProductList = ({
     <>
       <div className="space-y-3">
         {statusOrder.map(status => {
-          const group = statusGroups[status] // 使用过滤后的状态组
+          const group = statusGroups[status]
           if (!group || group.products.length === 0) {
             return null
           }
 
-          const isExpanded = expandedGroups[status] === true // 默认不展开
+          const isExpanded = expandedGroups[status] === true
+          const customerGroups = groupByCustomer(group.products)
 
           return (
             <div key={status} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
@@ -325,85 +441,117 @@ const MobileProductList = ({
               {/* 只有在展开时才显示内容 */}
               {isExpanded && (
                 <div className="divide-y divide-gray-100">
-                  {group.products.map((product, index) => (
-                    <div key={`${product.id}-${index}`} className="p-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between space-x-3">
-                        {/* 左侧信息区域 */}
-                        <div className="flex-1 min-w-0 grid grid-cols-3 gap-4">
-                          {/* 客户名称 */}
-                          <div className="flex items-center space-x-2 min-w-0">
-                            <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                            <span className="font-medium text-gray-900 text-sm truncate">
-                              {product.customer}
-                            </span>
-                          </div>
-                          
-                          {/* 条码 */}
-                          <div className="flex items-center space-x-2 min-w-0">
-                            <BarChart3 className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                            <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 truncate">
-                              {product.barcode || '无条码'}
-                            </span>
-                          </div>
-
-                          {/* 当前状态 */}
-                          <div className="flex items-center space-x-2 min-w-0">
-                            {getStatusIcon(product.status || 'scheduled')}
-                            <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
-                              {statusNames[product.status] || product.status || '已排产'}
-                            </span>
-                          </div>
+                  {Object.entries(customerGroups).map(([customer, customerProducts]) => (
+                    <div key={customer} className="p-3">
+                      {/* 客户标题和批量操作按钮 */}
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium text-gray-900 text-sm">
+                            {customer} ({customerProducts.length}个产品)
+                          </span>
                         </div>
                         
-                        {/* 右侧按钮组 */}
-                        <div className="flex items-center space-x-2 flex-shrink-0">
-                          {/* 状态快捷按钮 - 对所有产品显示，包括仅扫码数据 */}
-                          <button
-                            onClick={async () => {
-                              try {
-                                console.log('Updating product to 部分出库:', product.id)
-                                await onStatusUpdate(product.id, '部分出库')
-                                console.log('Status update completed, calling refresh...')
-                                if (onRefresh) {
-                                  await onRefresh()
-                                }
-                              } catch (error) {
-                                console.error('Error updating status:', error)
-                                alert('更新状态失败')
-                              }
-                            }}
-                            className={`${getStatusButtonClass('部分出库')} text-white px-2 py-1 rounded text-xs font-medium shadow-sm whitespace-nowrap`}
-                          >
-                            部分出库
-                          </button>
-                          <button
-                            onClick={async () => {
-                              try {
-                                console.log('Updating product to 已出库:', product.id)
-                                await onStatusUpdate(product.id, '已出库')
-                                console.log('Status update completed, calling refresh...')
-                                if (onRefresh) {
-                                  await onRefresh()
-                                }
-                              } catch (error) {
-                                console.error('Error updating status:', error)
-                                alert('更新状态失败')
-                              }
-                            }}
-                            className={`${getStatusButtonClass('已出库')} text-white px-2 py-1 rounded text-xs font-medium shadow-sm whitespace-nowrap`}
-                          >
-                            已出库
-                          </button>
+                        {/* 批量操作按钮组 */}
+                        <div className="flex items-center space-x-2">
+                          {/* 批量入库按钮 - 只在非"已入库"和非"已出库"状态显示 */}
+                          {status !== '已入库' && status !== '已出库' && (
+                            <button
+                              onClick={() => handleBatchStorage(customer, customerProducts)}
+                              disabled={batchUpdating}
+                              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-medium shadow-sm flex items-center space-x-1"
+                            >
+                              <PackageCheck className="h-3 w-3" />
+                              <span>{batchUpdating ? '处理中...' : '批量入库'}</span>
+                            </button>
+                          )}
                           
-                          {/* 详情按钮 */}
-                          <button
-                            onClick={() => showProductDetail(product)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center space-x-1 shadow-sm"
-                          >
-                            <Info className="h-3 w-3" />
-                            <span className="text-xs font-medium">详情</span>
-                          </button>
+                          {/* 批量出库按钮 - 只在"已入库"状态显示 */}
+                          {status === '已入库' && (
+                            <button
+                              onClick={() => handleBatchShipment(customer, customerProducts)}
+                              disabled={batchUpdating}
+                              className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-medium shadow-sm flex items-center space-x-1"
+                            >
+                              <TruckIcon className="h-3 w-3" />
+                              <span>{batchUpdating ? '处理中...' : '批量出库'}</span>
+                            </button>
+                          )}
                         </div>
+                      </div>
+                      
+                      {/* 该客户的产品列表 */}
+                      <div className="space-y-2">
+                        {customerProducts.map((product, index) => (
+                          <div key={`${product.id}-${index}`} className="bg-gray-50 p-2 rounded hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center justify-between space-x-3">
+                              {/* 左侧信息区域 */}
+                              <div className="flex-1 min-w-0 grid grid-cols-2 gap-4">
+                                {/* 条码 */}
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  <BarChart3 className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                  <span className="bg-white px-2 py-1 rounded text-xs font-mono text-gray-600 truncate">
+                                    {product.barcode || '无条码'}
+                                  </span>
+                                </div>
+
+                                {/* 当前状态 */}
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  {getStatusIcon(product.status || 'scheduled')}
+                                  <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                                    {statusNames[product.status] || product.status || '已排产'}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* 右侧按钮组 */}
+                              <div className="flex items-center space-x-2 flex-shrink-0">
+                                {/* 状态快捷按钮 */}
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await onStatusUpdate(product.id, '部分出库')
+                                      if (onRefresh) {
+                                        await onRefresh()
+                                      }
+                                    } catch (error) {
+                                      console.error('Error updating status:', error)
+                                      alert('更新状态失败')
+                                    }
+                                  }}
+                                  className={`${getStatusButtonClass('部分出库')} text-white px-2 py-1 rounded text-xs font-medium shadow-sm whitespace-nowrap`}
+                                >
+                                  部分出库
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await onStatusUpdate(product.id, '已出库')
+                                      if (onRefresh) {
+                                        await onRefresh()
+                                      }
+                                    } catch (error) {
+                                      console.error('Error updating status:', error)
+                                      alert('更新状态失败')
+                                    }
+                                  }}
+                                  className={`${getStatusButtonClass('已出库')} text-white px-2 py-1 rounded text-xs font-medium shadow-sm whitespace-nowrap`}
+                                >
+                                  已出库
+                                </button>
+                                
+                                {/* 详情按钮 */}
+                                <button
+                                  onClick={() => showProductDetail(product)}
+                                  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center space-x-1 shadow-sm"
+                                >
+                                  <Info className="h-3 w-3" />
+                                  <span className="text-xs font-medium">详情</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
