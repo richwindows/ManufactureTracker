@@ -168,7 +168,7 @@ export async function PUT(request, { params }) {
 // DELETE - 删除产品
 export async function DELETE(request, { params }) {
   try {
-    const { id } = await params  // 添加 await
+    const { id } = await params
     
     console.log('DELETE request received:', { id })
     
@@ -179,14 +179,36 @@ export async function DELETE(request, { params }) {
     
     // 检查是否是仅扫码数据
     if (id.startsWith('scan_')) {
-      console.log('Attempting to delete scan-only data, which is not supported')
-      return NextResponse.json({ 
-        error: '无法删除仅扫码数据', 
-        message: '仅扫码数据不支持删除操作' 
-      }, { status: 400 })
+      // 提取扫码记录的真实ID
+      const scanId = id.replace('scan_', '')
+      const numericScanId = parseInt(scanId)
+      
+      if (isNaN(numericScanId)) {
+        console.error('Invalid scan ID format:', id)
+        return NextResponse.json({ error: '扫码记录ID格式无效' }, { status: 400 })
+      }
+      
+      console.log('Deleting scan record:', numericScanId)
+      
+      const { error } = await supabase
+        .from('barcode_scans')
+        .delete()
+        .eq('id', numericScanId)
+      
+      if (error) {
+        console.error('Supabase delete scan error:', error)
+        return NextResponse.json({ 
+          error: '删除扫码记录失败', 
+          details: error.message,
+          code: error.code 
+        }, { status: 500 })
+      }
+      
+      console.log('Scan record deleted successfully:', numericScanId)
+      return NextResponse.json({ message: '扫码记录删除成功' })
     }
     
-    // 确保ID是数字
+    // 确保ID是数字（真实产品）
     const numericId = parseInt(id)
     if (isNaN(numericId)) {
       console.error('Invalid product ID format:', id)
@@ -212,7 +234,7 @@ export async function DELETE(request, { params }) {
   } catch (error) {
     console.error('Error deleting product:', error)
     return NextResponse.json({ 
-      error: '删除产品失败', 
+      error: '删除失败', 
       details: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 })

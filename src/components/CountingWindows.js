@@ -86,7 +86,8 @@ export default function FullScreenDisplay({ isCompact = false }) {
   // Format date time for display
   const formatDateTime = (dateString) => {
     const date = new Date(dateString)
-    return date.toLocaleString('zh-CN', {
+    return date.toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -96,26 +97,19 @@ export default function FullScreenDisplay({ isCompact = false }) {
     })
   }
 
-  // Fetch highest record
+  // 获取最高记录数据
   const fetchHighestRecord = async () => {
     try {
       const response = await fetch('/api/barcodes?action=highest-record')
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
       const data = await response.json()
+      // console.log('data:', data)
       setHighestRecord({
         count: data.count || 0,
-        date: data.date || ''
+        date: data.date || null
       })
-      setConnectionError(false)
     } catch (error) {
       console.error('Error fetching highest record:', error)
       setConnectionError(true)
-      setHighestRecord({
-        count: '--',
-        date: '数据库连接中断'
-      })
     }
   }
 
@@ -186,14 +180,18 @@ export default function FullScreenDisplay({ isCompact = false }) {
   }
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-CA') // YYYY-MM-DD format
+    return date.toLocaleDateString('en-CA', {
+      timeZone: 'America/Los_Angeles'
+    }) // YYYY-MM-DD format in LA timezone
   }
 
-  const formatDisplayDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-CA')
-  }
+  // const formatDisplayDate = (dateString) => {
+  //   if (!dateString) return 'N/A'
+  //   const date = new Date(dateString)
+  //   return date.toLocaleDateString('en-CA', {
+  //     timeZone: 'America/Los_Angeles'
+  //   }) // 返回洛杉矶时区的 YYYY-MM-DD 格式
+  // }
 
   if (!isVisible && !isCompact) {
     return (
@@ -219,7 +217,7 @@ export default function FullScreenDisplay({ isCompact = false }) {
               // onClick={handleTodayCountClick} // 移除点击功能
             >
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-red-400 via-pink-500 to-rose-400 bg-clip-text text-transparent mb-2">
-                今日总数
+                Today Count
               </h2>
               <div className="text-6xl md:text-8xl lg:text-9xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
                 {todayCount}
@@ -247,16 +245,12 @@ export default function FullScreenDisplay({ isCompact = false }) {
                     <span className="text-base md:text-lg lg:text-xl font-bold text-yellow-200 drop-shadow-lg">
                       📅 Date:
                     </span>
+                    {/* 日期显示 */}
                     <span className="text-lg md:text-xl lg:text-2xl font-black text-white drop-shadow-2xl bg-gradient-to-r from-white via-yellow-100 to-orange-100 bg-clip-text text-transparent">
-                      {formatDisplayDate(highestRecord.date)}
+                      {highestRecord.date}
                     </span>
-                  </div>
-                  
-                  {/* 数字部分 - 最突出 */}
-                  <div className="flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm border-2 border-yellow-300/50 shadow-xl">
-                    <span className="text-base md:text-lg lg:text-xl font-bold text-yellow-200 drop-shadow-lg">
-                      🪟 Windows/Day:
-                    </span>
+                    
+                    {/* 数量显示 */}
                     <span className="text-4xl md:text-5xl lg:text-6xl font-black bg-gradient-to-r from-yellow-300 via-orange-300 to-red-300 bg-clip-text text-transparent drop-shadow-2xl transform hover:scale-105 transition-transform duration-300 leading-none">
                       {highestRecord.count}
                     </span>

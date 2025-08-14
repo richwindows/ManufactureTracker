@@ -12,35 +12,63 @@ export async function GET(request) {
     const limit = searchParams.get('limit');
 
     switch (action) {
+      // 在第15-30行，修改 today-count 的时间处理
       case 'today-count':
-        // 获取洛杉矶时区的今天日期
+        // 明确使用洛杉矶时区获取当前日期
         const now = new Date();
-        const losAngelesTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+        const losAngelesTimeString = now.toLocaleString("en-US", {
+          timeZone: "America/Los_Angeles",
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
         
-        const year = losAngelesTime.getFullYear();
-        const month = String(losAngelesTime.getMonth() + 1).padStart(2, '0');
-        const day = String(losAngelesTime.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
+        // 从洛杉矶时间字符串中提取日期部分
+        const losAngelesDate = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+        const year = losAngelesDate.getFullYear();
+        const month = String(losAngelesDate.getMonth() + 1).padStart(2, '0');
+        const day = String(losAngelesDate.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;     
         
-        // 修改查询条件：只获取已入库的数据 (status_4_stored = true)
+        // console.log('todayStr:', todayStr);
+        // console.log('洛杉矶时间:', losAngelesTimeString);
+        // console.log('UTC时间:', now.toISOString());
+        
+        // 计算明天的开始时间
+        const tomorrow = new Date(losAngelesDate);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowYear = tomorrow.getFullYear();
+        const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
+        const tomorrowStr = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}`;
+  
+        // 查询当天的数据
         const { count: todayCount, error: todayError } = await supabase
           .from('barcode_scans')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', `${todayStr}T00:00:00-08:00`)
-          .lt('created_at', `${todayStr}T23:59:59-08:00`)
+          .gte('status_4_time', `${todayStr}T00:00:00`)
+          .lt('status_4_time', `${tomorrowStr}T00:00:00`)
           .eq('status_4_stored', true);
-        
+
+        // console.log('todayCount:', todayCount);
+        // console.log('tomorrowStr:', tomorrowStr);
+        // console.log('now:', todayStr);
+  
         if (todayError) {
           console.error('Error fetching today count:', todayError);
           return NextResponse.json({ error: 'Failed to fetch today count' }, { status: 500 });
         }
         return NextResponse.json({ count: todayCount || 0 });
-
+      
+      // 在第39-55行，修改 today-list 的时间处理
       case 'today-list':
-        // 获取洛杉矶时区的今天日期
+        // 使用洛杉矶时区获取当前日期
         const nowForList = new Date();
         const losAngelesTimeForList = new Date(nowForList.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
-        
         const yearForList = losAngelesTimeForList.getFullYear();
         const monthForList = String(losAngelesTimeForList.getMonth() + 1).padStart(2, '0');
         const dayForList = String(losAngelesTimeForList.getDate()).padStart(2, '0');
@@ -49,8 +77,8 @@ export async function GET(request) {
         const { data: todayBarcodes, error: todayListError } = await supabase
           .from('barcode_scans')
           .select('id, barcode_data, created_at, device_port, current_status')
-          .gte('created_at', `${todayStrForList}T00:00:00-08:00`)
-          .lt('created_at', `${todayStrForList}T23:59:59-08:00`)
+          .gte('created_at', `${todayStrForList}T00:00:00`)
+          .lte('created_at', `${todayStrForList}T23:59:59.999`)
           .order('created_at', { ascending: false });
         
         if (todayListError) {
@@ -74,8 +102,9 @@ export async function GET(request) {
           // 修改查询：只获取已入库的记录 (status_4_stored = true)
           const { data: allBarcodes, error: fallbackError } = await supabase
             .from('barcode_scans')
-            .select('created_at')
-            .eq('status_4_stored', true);
+            .select('status_4_time')
+            .eq('status_4_stored', true)
+            .not('status_4_time', 'is', null); // 确保 status_4_time 不为空
           
           if (fallbackError) {
             console.error('Fallback query failed:', fallbackError);
@@ -85,7 +114,8 @@ export async function GET(request) {
           // Group by date and count
           const dateGroups = {};
           allBarcodes.forEach(barcode => {
-            const date = new Date(barcode.created_at).toISOString().split('T')[0];
+            // 使用 status_4_time 而不是 created_at
+            const date = new Date(barcode.status_4_time).toISOString().split('T')[0];
             dateGroups[date] = (dateGroups[date] || 0) + 1;
           });
           
@@ -98,7 +128,9 @@ export async function GET(request) {
               maxDate = date;
             }
           });
-          
+
+          console.log('maxDate:', maxDate);
+          console.log('maxCount:', maxCount);
           return NextResponse.json({ count: maxCount, date: maxDate });
         } catch (error) {
           console.error('Error in highest-record:', error);
