@@ -483,24 +483,45 @@ const MobileProductList = ({
                       {/* 该客户的产品列表 */}
                       <div className="space-y-2">
                         {customerProducts.map((product, index) => (
-                          <div key={`${product.id}-${index}`} className="bg-gray-50 p-2 rounded hover:bg-gray-100 transition-colors">
+                          <div key={`${product.id}-${index}`} className="bg-gray-50 p-3 rounded hover:bg-gray-100 transition-colors">
                             <div className="flex items-center justify-between space-x-3">
-                              {/* 左侧信息区域 */}
-                              <div className="flex-1 min-w-0 grid grid-cols-2 gap-4">
-                                {/* 条码 */}
-                                <div className="flex items-center space-x-2 min-w-0">
-                                  <BarChart3 className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                                  <span className="bg-white px-2 py-1 rounded text-xs font-mono text-gray-600 truncate">
-                                    {product.barcode || '无条码'}
-                                  </span>
-                                </div>
+                              {/* 左侧信息区域 - 全部一行显示 */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-3 text-xs">
+                                  {/* 条码 */}
+                                  <div className="flex items-center space-x-1">
+                                    <BarChart3 className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                    <span className="bg-white px-2 py-1 rounded font-mono text-gray-600">
+                                      {product.barcode || '无条码'}
+                                    </span>
+                                  </div>
 
-                                {/* 当前状态 */}
-                                <div className="flex items-center space-x-2 min-w-0">
-                                  {getStatusIcon(product.status || 'scheduled')}
-                                  <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
-                                    {statusNames[product.status] || product.status || '已排产'}
-                                  </span>
+                                  {/* 当前状态 */}
+                                  <div className="flex items-center space-x-1">
+                                    {getStatusIcon(product.status || 'scheduled')}
+                                    <span className="font-medium text-gray-700 whitespace-nowrap">
+                                      {statusNames[product.status] || product.status || '已排产'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* 产品规格信息 */}
+                                  <div className="flex items-center space-x-3 text-gray-600">
+                                    <span><span className="text-gray-400">产品ID:</span> <span className="font-medium">{product.product_id || '未知'}</span></span>
+                                    <span><span className="text-gray-400">样式:</span> <span className="font-medium">{product.style || '未知'}</span></span>
+                                    <span><span className="text-gray-400">尺寸:</span> <span className="font-medium">{product.size || '未知'}</span></span>
+                                    <span><span className="text-gray-400">边框:</span> <span className="font-medium">{product.frame || '未知'}</span></span>
+                                    <span><span className="text-gray-400">玻璃:</span> <span className="font-medium">{product.glass || '未知'}</span></span>
+                                    {/* 添加扫描时间显示 */}
+                                    {product.scanned_at && (
+                                      <span><span className="text-gray-400">扫描时间:</span> <span className="font-medium text-blue-600">{new Date(product.scanned_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles',
+                                        year: 'numeric', 
+                                        month: '2-digit', 
+                                        day: '2-digit', 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                      })}</span></span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               
