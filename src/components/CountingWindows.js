@@ -402,7 +402,7 @@ export default function FullScreenDisplay({ isCompact = false }) {
               <div className="flex flex-col items-center justify-center">
                 <div className="flex items-center mb-2">
                   <span className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-amber-200 drop-shadow-lg">
-                    📅 {formatDisplayDate(highestRecord.date)}
+                    📅 {highestRecord.date || 'N/A'}
                   </span>
                 </div>
               </div>
