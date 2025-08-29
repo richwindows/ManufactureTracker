@@ -10,10 +10,36 @@ export async function GET(request) {
     const date = searchParams.get('date') // 保持向后兼容
     const search = searchParams.get('search') // 添加搜索参数
     
-    // 1. 获取所有产品数据
-    let productsQuery = supabase.from('products').select('*')
+    // 1. 获取所有产品数据 - 使用分页查询获取所有数据
+    let allProducts = []
+    let from = 0
+    const pageSize = 1000
+    let hasMore = true
     
-    const { data: products, error: productsError } = await productsQuery
+    while (hasMore) {
+      const { data: pageProducts, error: pageError } = await supabase
+        .from('products')
+        .select('*')
+        .range(from, from + pageSize - 1)
+      
+      if (pageError) {
+        console.error('获取产品失败:', pageError)
+        throw pageError
+      }
+      
+      if (pageProducts && pageProducts.length > 0) {
+        allProducts = allProducts.concat(pageProducts)
+        from += pageSize
+        hasMore = pageProducts.length === pageSize
+      } else {
+        hasMore = false
+      }
+    }
+    
+    const products = allProducts
+    const productsError = null
+
+    // 产品数据获取完成
     
     if (productsError) {
       console.error('获取产品失败:', productsError)
@@ -51,6 +77,9 @@ export async function GET(request) {
 
     // 4. 处理产品数据，如果产品的条码在扫码表中存在，则使用扫码表的状态和时间
     const productsArray = Array.isArray(products) ? products : []
+    
+    // 处理产品数组
+    
     let processedProducts = productsArray.map(product => {
       if (product.barcode && scanMap[product.barcode]) {
         const scanData = scanMap[product.barcode]
@@ -142,11 +171,41 @@ export async function GET(request) {
 
     }
 
-    // 6. 基于过滤后的产品获取仅扫码数据
-    let filteredScannedOnlyBarcodes = Object.values(scanMap).filter(scan => {
+    // 6. 基于所有产品数据获取仅扫码数据（修复：使用processedProducts而不是filteredProducts）
+    let scannedOnlyBarcodes = Object.values(scanMap).filter(scan => {
       const scanBarcode = scan.barcode_data?.trim()
-      return scanBarcode && !filteredProducts.some(p => p.barcode?.trim() === scanBarcode)
+      return scanBarcode && !processedProducts.some(p => p.barcode?.trim() === scanBarcode)
     })
+
+    // 6.1 对仅扫码数据应用时间过滤
+    let filteredScannedOnlyBarcodes = scannedOnlyBarcodes
+    if (date) {
+      const startTime = new Date(`${date}T00:00:00-08:00`)
+      const endTime = new Date(`${date}T23:59:59.999-08:00`)
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime >= startTime && scanTime <= endTime
+      })
+    } else if (startDate && endDate) {
+      const startTime = new Date(`${startDate}T00:00:00-08:00`)
+      const endTime = new Date(`${endDate}T23:59:59.999-08:00`)
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime >= startTime && scanTime <= endTime
+      })
+    } else if (startDate) {
+      const startTime = new Date(`${startDate}T00:00:00-08:00`)
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime >= startTime
+      })
+    } else if (endDate) {
+      const endTime = new Date(`${endDate}T23:59:59.999-08:00`)
+      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
+        const scanTime = new Date(scan.last_scan_time)
+        return scanTime <= endTime
+      })
+    }
 
     // 7. 处理搜索功能
     if (search) {
@@ -187,16 +246,16 @@ export async function GET(request) {
     }))
 
     // 9. 合并产品数据和仅扫码数据，避免重复
-    // 创建产品条码集合，用于去重（包括空字符串检查）
-    const filteredProductBarcodes = new Set(
-      filteredProducts
+    // 创建所有产品条码集合，用于去重（包括空字符串检查）
+    const allProductBarcodes = new Set(
+      processedProducts
         .map(p => p.barcode?.trim())
         .filter(barcode => barcode && barcode !== '')
     )
     
-    // 过滤掉与产品条码重复的仅扫码数据
+    // 过滤掉与所有产品条码重复的仅扫码数据（这一步实际上已经在第6步完成，这里是双重保险）
     const uniqueScannedOnlyAsProducts = scannedOnlyAsProducts.filter(scan => 
-      !filteredProductBarcodes.has(scan.barcode?.trim())
+      !allProductBarcodes.has(scan.barcode?.trim())
     )
     
     // 合并去重后的数据

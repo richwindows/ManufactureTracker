@@ -14,7 +14,6 @@ import { Package, Upload, Users, LogOut, Search, RefreshCw } from 'lucide-react'
 function Home() {
   const { user, logout } = useAuth()
   const [products, setProducts] = useState([])
-  const [scannedOnlyBarcodes, setScannedOnlyBarcodes] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   
@@ -40,7 +39,6 @@ function Home() {
 
   useEffect(() => {
     fetchProducts()
-    fetchScannedOnlyBarcodes()
   }, [dateRange])
 
   const fetchProducts = async () => {
@@ -66,24 +64,7 @@ function Home() {
     }
   }
 
-  const fetchScannedOnlyBarcodes = async () => {
-    try {
-      console.log('Fetching scanned-only barcodes...')
-      const response = await fetch('/api/barcodes/scanned-only')
-      console.log('Response status:', response.status)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Scanned-only barcodes data:', data)
-        setScannedOnlyBarcodes(data)
-      } else {
-        const errorText = await response.text()
-        console.error('API error:', errorText)
-      }
-    } catch (error) {
-      console.error('Error fetching scanned-only barcodes:', error)
-    }
-  }
+
 
   const handleDateRangeChange = (newDateRange) => {
     setDateRange(newDateRange)
@@ -149,16 +130,12 @@ function Home() {
     }
   }
 
-  // 搜索过滤 - 同时过滤产品和仅扫码数据
+  // 搜索过滤 - 过滤所有产品数据（包括仅扫码数据）
   const filteredProducts = products.filter(product =>
     product.customer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.productId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.product_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.style?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.barcode?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(barcode =>
-    barcode.barcode_data?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // 统一的界面（所有角色）
@@ -299,7 +276,6 @@ function Home() {
                   ) : (
                     <ProductListByStatus 
                       products={filteredProducts} 
-                      scannedOnlyBarcodes={filteredScannedOnlyBarcodes}
                       onDelete={handleProductDelete}
                       onStatusUpdate={handleStatusUpdate}
                       onRefresh={handleRefresh}

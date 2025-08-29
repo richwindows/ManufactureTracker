@@ -19,7 +19,6 @@ import ModulePermissionGuard, { MODULE_PERMISSIONS } from './ModulePermissionGua
 
 const ProductListByStatus = ({ 
   products = [], 
-  scannedOnlyBarcodes = [], 
   onStatusUpdate, 
   onRefresh,
   filterStatusGroups = (groups) => groups 
