@@ -66,18 +66,8 @@ export async function GET(request) {
       }
     })
 
-    // 5. 获取仅扫码数据（没有对应产品的扫码记录）
-    const productBarcodes = productsArray
-      .filter(p => p.barcode && p.barcode.trim() !== '')
-      .map(p => p.barcode.trim())
-
-    const scannedOnlyBarcodes = Object.values(scanMap).filter(scan => 
-      !productBarcodes.includes(scan.barcode_data?.trim())
-    )
-
-    // 6. 应用时间过滤
+    // 5. 应用时间过滤到产品数据
     let filteredProducts = processedProducts
-    let filteredScannedOnlyBarcodes = scannedOnlyBarcodes
 
     if (date) {
       // 如果指定了单个日期，筛选指定日期的数据（向后兼容）
@@ -100,12 +90,6 @@ export async function GET(request) {
         const scannedInRange = scannedDate && scannedDate >= startTime && scannedDate <= endTime
         
         return createdInRange || scannedInRange
-      })
-      
-      // 过滤仅扫码数据
-      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
-        const scanTime = new Date(scan.last_scan_time)
-        return scanTime >= startTime && scanTime <= endTime
       })
       
     } else if (startDate && endDate) {
@@ -131,11 +115,7 @@ export async function GET(request) {
         return createdInRange || scannedInRange
       })
       
-      // 过滤仅扫码数据
-      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
-        const scanTime = new Date(scan.last_scan_time)
-        return scanTime >= startTime && scanTime <= endTime
-      })
+
       
     } else if (startDate) {
       const startTime = new Date(`${startDate}T00:00:00-08:00`)
@@ -147,10 +127,7 @@ export async function GET(request) {
         return createdDate >= startTime || (scannedDate && scannedDate >= startTime)
       })
       
-      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
-        const scanTime = new Date(scan.last_scan_time)
-        return scanTime >= startTime
-      })
+
       
     } else if (endDate) {
       const endTime = new Date(`${endDate}T23:59:59.999-08:00`)
@@ -162,11 +139,14 @@ export async function GET(request) {
         return createdDate <= endTime || (scannedDate && scannedDate <= endTime)
       })
       
-      filteredScannedOnlyBarcodes = scannedOnlyBarcodes.filter(scan => {
-        const scanTime = new Date(scan.last_scan_time)
-        return scanTime <= endTime
-      })
+
     }
+
+    // 6. 基于过滤后的产品获取仅扫码数据
+    let filteredScannedOnlyBarcodes = Object.values(scanMap).filter(scan => {
+      const scanBarcode = scan.barcode_data?.trim()
+      return scanBarcode && !filteredProducts.some(p => p.barcode?.trim() === scanBarcode)
+    })
 
     // 7. 处理搜索功能
     if (search) {

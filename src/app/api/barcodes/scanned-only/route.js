@@ -13,11 +13,12 @@ export async function GET(request) {
     
     // console.log('Scanned-only API 时间参数:', { startDate, endDate });
     
-    // 首先获取所有产品的条码
+    // 首先获取所有产品的条码 - 获取所有记录（设置足够大的限制）
     const { data: products, error: productsError } = await supabase
       .from('products')
       .select('barcode')
-      .not('barcode', 'is', null);
+      .not('barcode', 'is', null)
+      // .limit(50000); // 设置足够大的限制以确保获取所有记录
 
     if (productsError) {
       console.error('Error fetching products:', productsError);
@@ -25,10 +26,13 @@ export async function GET(request) {
     }
 
     // console.log('Products with barcodes:', products?.length || 0)
+    //  const hasRich082725 = products.some(p => p.barcode === 'Rich-082725-12-53')
+    //  console.log('是否包含Rich-082725-12-53:', hasRich082725)
 
-    // 提取所有产品条码
-    const productBarcodes = products?.map(p => p.barcode) || [];
-    // console.log('Product barcodes:', productBarcodes)
+
+    // 提取所有产品条码，并进行trim处理以确保一致性
+    const productBarcodes = products?.map(p => p.barcode?.trim()).filter(barcode => barcode && barcode !== '') || [];
+    // console.log('Product barcodes count:', productBarcodes.length)
 
     // 构建扫码数据查询 - 添加时间过滤
     let scansQuery = supabase
@@ -76,7 +80,7 @@ export async function GET(request) {
 
     // 过滤出没有对应产品数据的扫码记录，并确保状态有默认值
     const scannedOnlyBarcodes = allScans?.filter(scan => 
-      !productBarcodes.includes(scan.barcode_data)
+      !productBarcodes.includes(scan.barcode_data?.trim())
     ).map(scan => ({
       ...scan,
       // 使用 current_status 作为状态，如果没有则默认为 '已扫描'
@@ -86,7 +90,8 @@ export async function GET(request) {
     })) || [];
 
     // console.log('Scanned-only barcodes after filtering:', scannedOnlyBarcodes.length)
-    // console.log('Sample scanned-only barcode:', scannedOnlyBarcodes[0])
+    console.log('Sample scanned-only barcode:', scannedOnlyBarcodes.barcode_data === 'Rich-082725-12-53')
+
 
     return NextResponse.json(scannedOnlyBarcodes);
   } catch (error) {
